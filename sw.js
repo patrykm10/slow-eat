@@ -1,4 +1,4 @@
-const CACHE = 'eat-slow-quest-v22';
+const CACHE = 'eat-slow-quest-v23';
 const ASSETS = [
   './',
   './index.html',
