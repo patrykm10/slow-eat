@@ -188,7 +188,7 @@
     text-shadow: 1px 1px 0 rgba(0,0,0,0.5); z-index: 1;
   }
 
-  .combo-row { display: flex; justify-content: center; padding: 2px 0 0; z-index: 2; min-height: 14px; }
+  .combo-row { display: flex; justify-content: flex-start; padding: 2px 0 0; z-index: 2; min-height: 14px; }
   .combo-tag { font-size: 8px; color: var(--combo); letter-spacing: 1px; opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: scale(0.8); }
   .combo-tag.active { opacity: 1; transform: scale(1); }
   .combo-tag.bump { animation: comboBump 0.4s; }
@@ -266,6 +266,7 @@
     animation: none !important;
     transform: rotate(90deg) translateY(14px) !important;
     opacity: 0.5;
+    filter: grayscale(1);
     transition: all 0.8s ease;
   }
   .fighter-wrap.boss.entering { animation: bossEnter 0.8s ease-out; }
@@ -325,7 +326,7 @@
     text-align: center; font-size: 8px; color: var(--muted);
     letter-spacing: 0.5px; z-index: 7; pointer-events: none; line-height: 1.6;
   }
-  .boss-plate { position: absolute; top: 52px; right: 14px; text-align: right; z-index: 3; pointer-events: none; }
+  .boss-plate { position: absolute; top: 52px; right: 14px; max-width: calc(70% - 14px); text-align: right; line-height: 1.6; z-index: 3; pointer-events: none; }
   .boss-plate-sub { font-size: 8px; color: var(--muted); letter-spacing: 1px; }
 
   .controls { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -575,7 +576,7 @@
   .loot-icon { font-size: 30px; }
   @keyframes perfectPopIn { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
   /* Message strip under the arena: battle log normally, the tip while chewing. */
-  .msg-slot { position: relative; height: 64px; flex: none; }
+  .msg-slot { position: relative; height: 84px; flex: none; }
   .msg-slot .battle-log, .msg-slot .fight-tip {
     position: absolute; inset: 0; margin: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
@@ -585,7 +586,7 @@
   .fight-tip {
     opacity: 0; pointer-events: none; padding: 6px 12px;
     background: rgba(212, 168, 67, 0.08); border: 1px solid rgba(212, 168, 67, 0.45); border-radius: 10px;
-    font-family: var(--read); font-size: 18px; line-height: 1.15; color: var(--text);
+    font-family: var(--read); font-size: 18px; line-height: 1.12; color: var(--text);
   }
   .fight-tip.show { opacity: 1; }
   .msg-slot:has(.fight-tip.show) .battle-log { opacity: 0; }
@@ -805,7 +806,7 @@
   .sign-bubble .bubble-title { font-family: 'Press Start 2P', monospace; font-size: 8px; }
   .results-desc { font-size: 20px; line-height: 1.2; }
   .boss-status-line { font-size: 19px; line-height: 1.2; }
-  .copyright { font-size: 7px; letter-spacing: 1px; color: rgba(224, 221, 212, 0.35); text-align: center; margin-top: 14px; }
+  .copyright { font-size: 7px; letter-spacing: 1px; line-height: 1.9; color: rgba(224, 221, 212, 0.35); text-align: center; margin-top: 14px; }
   .title-note { font-size: 17px; line-height: 1.2; color: rgba(224, 221, 212, 0.45); }
   .hud-sub { font-size: 18px; color: rgba(224, 221, 212, 0.7); margin-top: 8px; }
   .hud-toast { font-size: 19px; line-height: 1.2; }
@@ -827,6 +828,7 @@
     font-family: 'Press Start 2P', monospace; font-size: 10px; cursor: pointer;
   }
   .icon-btn:hover { color: var(--text); border-color: var(--muted); }
+  #soundBtn { display: inline-flex; align-items: center; justify-content: center; padding: 0; }
 
   /* Hub: meal is the main action, walking is optional */
   .hub-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 340px; }
@@ -891,7 +893,7 @@
   .log { align-items: flex-start; }
   .log-card { margin: auto 0; }
   .log-summary { min-height: 0; }
-  .log-chart-title { font-size: 8px; color: var(--muted); letter-spacing: 1px; margin: 20px 0 8px; text-transform: uppercase; display: flex; justify-content: space-between; gap: 12px; }
+  .log-chart-title { font-size: 8px; color: var(--muted); letter-spacing: 1px; margin: 20px 0 8px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; line-height: 1.7; }
   .log-chart-title .ref { color: rgba(240, 208, 96, 0.7); white-space: nowrap; }
   .log-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
   .log-chart rect.bar { fill: var(--charge); cursor: pointer; }
@@ -925,7 +927,7 @@
     <div class="header-right">
       <div class="level-tag" id="levelTag">LV 1</div>
       <div class="timer" id="mealTimer">00:00</div>
-      <button class="icon-btn" id="soundBtn" aria-label="Mute sounds">🔊</button>
+      <button class="icon-btn" id="soundBtn" aria-label="Mute sounds"></button>
       <button class="icon-btn" id="battleHelpBtn" aria-label="How to play">?</button>
     </div>
   </div>
@@ -1164,7 +1166,7 @@
     <div class="help-title" id="logTitle"></div>
     <div class="help-body log-summary" id="logSummary"></div>
     <div id="logCharts">
-      <div class="log-chart-title">Average chew per bite <span class="ref">- - 12s combo</span></div>
+      <div class="log-chart-title">Avg chew per bite <span class="ref">- - 12s combo</span></div>
       <div class="log-chart" id="chewChart"></div>
       <div class="log-chart-title">Meal length <span class="ref">- - 20 min</span></div>
       <div class="log-chart" id="lenChart"></div>
@@ -2062,7 +2064,7 @@ function render() {
       // Never nudge anyone to eat past their plate just to win.
       prompt.textContent = 'Plate empty? Tap Done eating. Never eat extra to win.';
     } else {
-      prompt.textContent = `Bite ${bites.length + 1} of about ${foe.bites}. Next one whenever you're ready.`;
+      prompt.textContent = `Bite ${bites.length + 1} of about ${foe.bites}. No rush.`;
     }
     $('finishBtn').disabled = bites.length === 0;
     $('playerWrap').classList.remove('chewing', 'supercharged');
@@ -2179,8 +2181,17 @@ function chime(freqs) {
     });
   } catch {}
 }
+// Pixel-art speaker in the button's own colour (emoji rendered grey and blurry here).
+// Pixel-art speaker on a 9x9 grid, in the button's own colour (emoji rendered grey and blurry here).
+const SPEAKER_SVG = on => {
+  const px = on ? [[5, 3, 1, 3], [7, 1, 1, 7]]
+                : [[5, 3, 1, 1], [7, 3, 1, 1], [6, 4, 1, 1], [5, 5, 1, 1], [7, 5, 1, 1]];
+  const body = [[1, 3, 1, 3], [2, 2, 1, 5], [3, 1, 1, 7]];
+  return `<svg viewBox="0 0 9 9" width="15" height="15" aria-hidden="true" shape-rendering="crispEdges" fill="currentColor">${
+    body.concat(px).map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"/>`).join('')}</svg>`;
+};
 function renderSoundBtn() {
-  $('soundBtn').textContent = soundOn() ? '🔊' : '🔇';
+  $('soundBtn').innerHTML = SPEAKER_SVG(soundOn());
   $('soundBtn').setAttribute('aria-label', soundOn() ? 'Mute sounds' : 'Turn sounds on');
 }
 $('soundBtn').addEventListener('click', () => {
