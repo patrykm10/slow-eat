@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eat Slow Quest</title>
+<meta name="description" content="A game that helps you eat more slowly. Play it during a real meal: chewing slowly powers up your knight.">
+<meta name="theme-color" content="#c8352a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Eat Slow Quest">
+<meta property="og:description" content="A game that helps you eat more slowly. Play it during a real meal: every bite you chew slowly powers up your knight.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Eat Slow Quest">
+<meta name="twitter:description" content="A game that helps you eat more slowly. Play it during a real meal.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="./icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #c8352a;
+    --red-dark: #8e2119;
+    --ink: #121212;
+    --ink-2: #444;
+    --paper: #fbfbf9;
+    --gold: #f2c230;
+    --night: #14121e;
+    --pixel: 'Press Start 2P', monospace;
+    --sans: 'IBM Plex Sans', system-ui, sans-serif;
+    --gutter: 24px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 18px; line-height: 1.55; }
+  a { color: inherit; }
+  /* One container, one left edge, for every section. */
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 var(--gutter); }
+
+  .notch {
+    clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+  }
+  .btn {
+    display: inline-block; text-decoration: none;
+    font-family: var(--pixel); font-size: 12px; letter-spacing: 1px; word-spacing: -0.3em; line-height: 1;
+    background: var(--gold); color: var(--ink); padding: 18px 22px;
+    box-shadow: inset -4px -4px 0 #c99a14, inset 4px 4px 0 #ffe27a;
+  }
+  .btn:hover { background: #ffd23d; }
+  .btn:active { box-shadow: inset 4px 4px 0 #c99a14, inset -4px -4px 0 #ffe27a; }
+
+  /* Top bar */
+  .bar { background: var(--ink); color: #fff; }
+  .bar .wrap { display: flex; justify-content: space-between; align-items: center; height: 48px; }
+  .bar a { font-family: var(--pixel); font-size: 10px; text-decoration: none; letter-spacing: 1px; }
+  .bar a.play { color: var(--gold); }
+
+  /* Cover */
+  .cover { background: var(--red); color: #fff; border-bottom: 4px solid var(--ink); }
+  .cover .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; padding-top: 64px; padding-bottom: 72px; }
+  .cover h1 { font-family: var(--pixel); font-weight: 400; font-size: clamp(24px, 3.2vw, 34px); line-height: 1.3; word-spacing: -0.35em; text-shadow: 3px 3px 0 var(--red-dark), 5px 5px 0 var(--ink); }
+  .cover .what { font-size: clamp(24px, 2.6vw, 30px); font-weight: 600; line-height: 1.25; margin-top: 22px; }
+  .cover .how { font-size: 19px; line-height: 1.5; margin-top: 12px; color: #ffe3de; max-width: 440px; }
+  .cover .btn { margin-top: 30px; }
+
+  /* Game screen pieces, shared by the cover and the panels */
+  .screen { background: var(--night); color: #e0ddd4; font-family: var(--pixel); padding: 14px; }
+  .arena { position: relative; overflow: hidden; background: linear-gradient(#0e0e18, #1a1830); }
+  .arena::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 24%; background: linear-gradient(#2a2148, #1a1530); }
+  .arena > * { z-index: 1; }
+  .hp { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; gap: 12px; font-size: 7px; color: #8a879e; }
+  .hp > div { flex: 1; }
+  .hp > div:last-child { text-align: right; }
+  .hpbar { height: 10px; margin-top: 5px; }
+  .hpbar i { display: block; height: 100%; }
+  .hpbar.you { background: #1e2e1e; } .hpbar.you i { background: #5b8c5a; width: 82%; }
+  .hpbar.foe { background: #2e1414; } .hpbar.foe i { background: #b84444; width: 64%; margin-left: auto; }
+  .fighter { position: absolute; bottom: 18%; }
+  .bob { animation: bob 2.4s ease-in-out infinite; }
+  .chomp { animation: chomp .5s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-4px); } }
+  @keyframes chomp { 50% { transform: translateY(2px) scaleY(.93); } }
+  .orb { position: absolute; left: 50%; top: -30px; transform: translateX(-50%); filter: drop-shadow(0 0 7px rgba(240,208,96,.9)); animation: bob 1.2s ease-in-out infinite; }
+  .track { position: relative; height: 12px; background: #2e2614; overflow: hidden; }
+  .track b { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(240, 208, 96, .6); z-index: 1; }
+  .fill { height: 100%; background: #d4a843; }
+  .gbtn { background: #d4a843; color: var(--night); text-align: center; font-size: 9px; padding: 14px; letter-spacing: 1px; }
+
+  .cover .arena { height: 240px; }
+  .cover .fighter.you { left: 16%; }
+  .cover .fighter.foe { right: 12%; }
+  .cover .fill { animation: charge 6s linear infinite; }
+  @keyframes charge { 0% { width: 0; } 83% { width: 88%; } 84%, 100% { width: 0; } }
+  .cover .track { margin: 14px 0 12px; }
+
+  /* Sections: same padding, same heading block, same left edge */
+  section { padding: 80px 0; border-bottom: 4px solid var(--ink); }
+  .head { max-width: 560px; margin-bottom: 40px; }
+  h2 { font-family: var(--pixel); font-weight: 400; font-size: clamp(14px, 1.6vw, 16px); line-height: 1.5; word-spacing: -0.35em; }
+  .head p { font-size: 20px; color: var(--ink-2); margin-top: 10px; }
+
+  /* How it works: three equal panels */
+  .panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .panel .screen { height: 220px; padding: 10px; }
+  .panel .arena { height: 100%; }
+  .panel .step { font-family: var(--pixel); font-size: 10px; color: var(--red); margin-top: 20px; }
+  .panel h3 { font-size: 21px; line-height: 1.3; margin-top: 8px; }
+  .panel p { color: var(--ink-2); margin-top: 4px; }
+  .pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 12px; height: 100%; align-content: center; }
+  .pick div { background: #1c1a28; height: 56px; display: flex; align-items: center; justify-content: center; border: 2px solid #2a2838; }
+  .pick div.sel { border-color: #d4a843; background: #2a2414; }
+  .panel .fighter.you { left: 16%; }
+  .panel .fighter.foe { right: 14%; }
+  .p2 .track { position: absolute; left: 12px; right: 12px; bottom: 12px; }
+  .p2 .fill { width: 70%; }
+  .shot { position: absolute; left: 34%; bottom: 44%; filter: drop-shadow(0 0 8px rgba(240,208,96,.9)); animation: shoot 1.6s ease-in infinite; }
+  @keyframes shoot { 0% { transform: translateX(0) rotate(0); opacity: 1; } 70% { transform: translateX(110px) rotate(300deg); opacity: 1; } 71%, 100% { opacity: 0; } }
+  .dmg { position: absolute; right: 16%; top: 20%; font-size: 14px; color: #f0d060; text-shadow: 2px 2px 0 #000; animation: dmg 1.6s steps(1) infinite; }
+  @keyframes dmg { 0%, 69% { opacity: 0; } 70%, 100% { opacity: 1; } }
+
+  /* Gobblins */
+  .gobblins { background: var(--night); color: #e0ddd4; }
+  .gobblins h2 { color: #fff; }
+  .gobblins .head p { color: #b9b6c8; }
+  .roster { display: grid; grid-template-columns: repeat(6, 1fr); gap: 32px 24px; }
+  .roster figure { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .roster .mon { height: 48px; display: flex; align-items: flex-end; }
+  .roster figcaption { font-size: 15px; line-height: 1.3; color: #d8d5e4; }
+  .roster figcaption small { display: block; font-size: 13px; color: #8a879e; margin-top: 2px; }
+
+  /* Why: text column + tip, top-aligned on the same grid as the panels */
+  .why { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+  .why p { font-size: 20px; color: var(--ink-2); max-width: 560px; }
+  .why p + p { margin-top: 14px; }
+  .why .src { font-size: 14px; }
+  .note { background: var(--night); color: #e0ddd4; padding: 20px 22px; font-size: 17px; line-height: 1.45; }
+  .note b { display: block; font-family: var(--pixel); font-size: 8px; color: #d4a843; font-weight: 400; margin-bottom: 10px; }
+
+  /* End */
+  .end { background: var(--red); color: #fff; border-bottom: 4px solid var(--ink); }
+  .end .wrap { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; padding-top: 64px; padding-bottom: 64px; }
+  .end h2 { color: #fff; text-shadow: 3px 3px 0 var(--red-dark); }
+  .end-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+  .btn.ghost { background: transparent; color: #fff; box-shadow: inset 0 0 0 4px #fff; }
+  .btn.ghost:hover { background: rgba(255,255,255,.12); }
+  .btn.ghost:active { box-shadow: inset 0 0 0 4px var(--gold); }
+  footer { font-size: 14px; color: #6b6b6b; }
+  footer .wrap { padding-top: 22px; padding-bottom: 30px; }
+
+  .knight { position: relative; width: 62px; height: 106px; }
+  .knight.sm { width: 46px; height: 78px; }
+  .knight i { position: absolute; top: 0; left: 2px; width: 4px; height: 4px; transform: scale(2.2); transform-origin: 2px 0; box-shadow:
+     8px 0 0 #4a6a8a,12px 0 0 #4a6a8a,4px 4px 0 #4a6a8a,8px 4px 0 #5a7ea0,12px 4px 0 #5a7ea0,16px 4px 0 #4a6a8a,
+     4px 8px 0 #4a6a8a,8px 8px 0 #dcc8a0,12px 8px 0 #dcc8a0,16px 8px 0 #4a6a8a,8px 12px 0 #dcc8a0,12px 12px 0 #c4a878,
+     4px 16px 0 #3a5a7a,8px 16px 0 #4a7090,12px 16px 0 #4a7090,16px 16px 0 #3a5a7a,
+     0 20px 0 #4a7090,4px 20px 0 #4a7090,8px 20px 0 #5a8aaa,12px 20px 0 #5a8aaa,16px 20px 0 #4a7090,20px 20px 0 #4a7090,
+     0 24px 0 #4a7090,4px 24px 0 #4a7090,8px 24px 0 #5a8aaa,12px 24px 0 #5a8aaa,16px 24px 0 #4a7090,20px 24px 0 #4a7090,
+     4px 28px 0 #3a5a7a,8px 28px 0 #4a7090,12px 28px 0 #4a7090,16px 28px 0 #3a5a7a,
+     4px 32px 0 #8a6a3a,8px 32px 0 #a0803a,12px 32px 0 #a0803a,16px 32px 0 #8a6a3a,
+     4px 36px 0 #3a4a5a,8px 36px 0 #3a4a5a,12px 36px 0 #3a4a5a,16px 36px 0 #3a4a5a,
+     4px 40px 0 #3a4a5a,8px 40px 0 #3a4a5a,12px 40px 0 #3a4a5a,16px 40px 0 #3a4a5a,
+     0 44px 0 #5a4a3a,4px 44px 0 #5a4a3a,12px 44px 0 #5a4a3a,16px 44px 0 #5a4a3a,20px 44px 0 #5a4a3a,
+     24px 12px 0 #c0c0d0,24px 16px 0 #c0c0d0,24px 20px 0 #e0e0f0,24px 24px 0 #e0e0f0,
+     24px 8px 0 #e0e0f0,24px 4px 0 #f0f0ff,24px 0 0 #f0f0ff,24px 28px 0 #8a6a3a; }
+  .knight.sm i { transform: scale(1.65); }
+  .px { display: block; image-rendering: pixelated; }
+  .food { position: relative; image-rendering: pixelated; }
+  .food i { position: absolute; width: 1px; height: 1px; transform-origin: 0 0; }
+
+  @media (max-width: 860px) {
+    .cover .wrap { grid-template-columns: 1fr; gap: 40px; padding-top: 44px; padding-bottom: 56px; }
+    .panels { grid-template-columns: 1fr; max-width: 440px; gap: 40px; }
+    .roster { grid-template-columns: repeat(3, 1fr); }
+    .why { grid-template-columns: 1fr; gap: 28px; }
+    .note { max-width: 440px; }
+    section { padding: 60px 0; }
+  }
+  @media (max-width: 480px) {
+    :root { --gutter: 16px; }
+    .roster { grid-template-columns: repeat(3, 1fr); gap: 24px 12px; }
+    .roster figcaption { font-size: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; }
+    .cover .fill { width: 70%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="wrap">
+    <a href="./">EAT SLOW QUEST</a>
+    <a class="play" href="./play.html">PLAY ▶</a>
+  </div>
+</div>
+
+<header class="cover">
+  <div class="wrap">
+    <div>
+      <h1>EAT SLOW QUEST</h1>
+      <p class="what">A game that helps you eat more slowly.</p>
+      <p class="how">Play it during a real meal. Every bite you chew slowly powers up your knight.</p>
+      <a class="btn" href="./play.html">PLAY NOW</a>
+    </div>
+    <div class="screen notch" role="img" aria-label="The game mid-fight: a knight charged with burger power facing a Gobblin.">
+      <div class="arena">
+        <div class="hp"><div>YOU<div class="hpbar you"><i></i></div></div><div>WOLFDOWN<div class="hpbar foe"><i></i></div></div></div>
+        <div class="fighter you chomp"><div class="orb"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAOCAYAAAAmL5yKAAAAVklEQVR42mNgwAIudNn8x4YZCAF0DV8e7cDKx6kZXQM+TJSTCbmIZANwumKIGxC/wus/jCYFI+tl+HTI4D85GO6FbCul/+Rg6hmwI0/rPzkYJTWSqxkAKx63ciw5nZYAAAAASUVORK5CYII=" width="32" height="28" alt=""></div><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAMCAYAAACulacQAAAAdUlEQVR42mNggAKvrK7/IAzjf/jw/z9cIqpuARjDFKBI3jmxAIxhkg8efICbwgCSOLKiAi5w4MAFCNsqquq/V8EEMAax4ZIwwaiuVWAM44ONxSuJy9iuLCuIJIixoAGC4YIwYOUV9R8ZEycZ5WX1H4SR2TA+AIVwibZbbUlHAAAAAElFTkSuQmCC" width="62" height="106" alt=""></div>
+        <div class="fighter foe bob"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiklEQVR42mNggIIXNxb8ZyASYFULEiTGELzqQBJdWV54MU7NhDSiY6yapUQUwBiXJnR5rLb//vEBqyEgMZAcVlegG4CuEJc42f7HaQDMj4QwXgNgYQCjTzjoofAJBiKxtsMNwOW/EysqUDDOcIhyMfiPbhC6ZmyGgPTA9DKQawAKAJmGYiIOgK4OAIEKhMFcYIS1AAAAAElFTkSuQmCC" width="80" height="75" alt=""></div>
+      </div>
+      <div class="track"><b style="left:40%"></b><b style="left:83%"></b><div class="fill"></div></div>
+      <div class="gbtn">I SWALLOWED</div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="head">
+      <h2>How it works</h2>
+      <p>Keep your phone next to your plate. Two taps per bite.</p>
+    </div>
+    <div class="panels">
+      <div class="panel">
+        <div class="screen notch"><div class="pick">
+          <div><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAOCAYAAAAmL5yKAAAAVklEQVR42mNgwAIudNn8x4YZCAF0DV8e7cDKx6kZXQM+TJSTCbmIZANwumKIGxC/wus/jCYFI+tl+HTI4D85GO6FbCul/+Rg6hmwI0/rPzkYJTWSqxkAKx63ciw5nZYAAAAASUVORK5CYII=" width="32" height="28" alt=""></div><div class="sel"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAYAAABr5z2BAAAATUlEQVR42mNgAIKTXVb/ycEMMECxASDw6YT3/x0Oev9BNCEMUseADojRiIwZsAGKNFPFAGLCgoEQoMh2XIbAXMRACiDLZqoagGwIPjUAFCopFGOh3pQAAAAASUVORK5CYII=" width="32" height="24" alt=""></div><div><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAKCAYAAAC9vt6cAAAARUlEQVR42mNgQANf70z5/+JI1n8YjcwG0Qy4AEwxumZcYqiaH137Tw4eRAaQYwhmIFJqACmGMOADOzct+Y8PMxADSNEMAJDvfYadTvChAAAAAElFTkSuQmCC" width="32" height="20" alt=""></div>
+          <div><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAKCAYAAAC9vt6cAAAARUlEQVR42mNgQAMnHPT+x6/w+g+jkdkgmgEXgClG14xLDEXzjfM7/pODB5EB5BiCEYgUG0CKIQz4wIp5bf/xYQZiACmaAYOWVLAfEmb4AAAAAElFTkSuQmCC" width="32" height="20" alt=""></div><div><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAKCAYAAAC9vt6cAAAARUlEQVR42mNgQAMfZgX8v1Gg9x9GI7NBNAMuAFOMrhmXGIrmriir/+TgQWQAOYZgBCLFBpBiCAM+kOyg9R8fZiAGkKIZAJru7UG++yeQAAAAAElFTkSuQmCC" width="32" height="20" alt=""></div><div><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAYAAABr5z2BAAAANklEQVR42mNgIBJc0LD6D8IM5AKSDPjy7N1/YjBZmrAa8OlC139yMPUMOOGQ9Z8cPOoFKnkBABC1uK0a1xsJAAAAAElFTkSuQmCC" width="32" height="24" alt=""></div>
+        </div></div>
+        <div class="step">FIRST</div>
+        <h3>Pick your meal</h3>
+        <p>What's on your plate becomes your power.</p>
+      </div>
+      <div class="panel p2">
+        <div class="screen notch"><div class="arena">
+          <div class="fighter you chomp"><div class="orb"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAYAAABr5z2BAAAATUlEQVR42mNgAIKTXVb/ycEMMECxASDw6YT3/x0Oev9BNCEMUseADojRiIwZsAGKNFPFAGLCgoEQoMh2XIbAXMRACiDLZqoagGwIPjUAFCopFGOh3pQAAAAASUVORK5CYII=" width="32" height="24" alt=""></div><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAMCAYAAACulacQAAAAdUlEQVR42mNggAKvrK7/IAzjf/jw/z9cIqpuARjDFKBI3jmxAIxhkg8efICbwgCSOLKiAi5w4MAFCNsqquq/V8EEMAax4ZIwwaiuVWAM44ONxSuJy9iuLCuIJIixoAGC4YIwYOUV9R8ZEycZ5WX1H4SR2TA+AIVwibZbbUlHAAAAAElFTkSuQmCC" width="46" height="79" alt=""></div>
+          <div class="fighter foe bob"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiUlEQVR42mNggIJPJ7z/MxAJsKoFCRJjCF51IIkTAXp4MU7NhDSiY6yapUQUwBiXJnR5rLb//vEBqyEgMZAcVlegG4CuEJc42f7HaQDMj4QwXgNgYQAPCwdUcYKBSKztcANw+e/DggIUjDMcugwU/qMbhK4ZmyEgPTC9DOQagAJApqGYiAOgqwMABNiG4ZIrhakAAAAASUVORK5CYII=" width="48" height="45" alt=""></div>
+          <div class="track"><b style="left:40%"></b><b style="left:83%"></b><div class="fill"></div></div>
+        </div></div>
+        <div class="step">EACH BITE</div>
+        <h3>Chew to charge</h3>
+        <p>Tap when you take a bite. The longer you chew, the stronger you get.</p>
+      </div>
+      <div class="panel">
+        <div class="screen notch"><div class="arena">
+          <div class="fighter you"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAMCAYAAACulacQAAAAdUlEQVR42mNggAKvrK7/IAzjf/jw/z9cIqpuARjDFKBI3jmxAIxhkg8efICbwgCSOLKiAi5w4MAFCNsqquq/V8EEMAax4ZIwwaiuVWAM44ONxSuJy9iuLCuIJIixoAGC4YIwYOUV9R8ZEycZ5WX1H4SR2TA+AIVwibZbbUlHAAAAAElFTkSuQmCC" width="46" height="79" alt=""></div>
+          <div class="shot"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAYAAABr5z2BAAAATUlEQVR42mNgAIKTXVb/ycEMMECxASDw6YT3/x0Oev9BNCEMUseADojRiIwZsAGKNFPFAGLCgoEQoMh2XIbAXMRACiDLZqoagGwIPjUAFCopFGOh3pQAAAAASUVORK5CYII=" width="32" height="24" alt=""></div>
+          <div class="dmg">-34</div>
+          <div class="fighter foe bob"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiUlEQVR42mNggIJPJ7z/MxAJsKoFCRJjCF51IIkTAXp4MU7NhDSiY6yapUQUwBiXJnR5rLb//vEBqyEgMZAcVlegG4CuEJc42f7HaQDMj4QwXgNgYQAPCwdUcYKBSKztcANw+e/DggIUjDMcugwU/qMbhK4ZmyEgPTC9DOQagAJApqGYiAOgqwMABNiG4ZIrhakAAAAASUVORK5CYII=" width="48" height="45" alt=""></div>
+        </div></div>
+        <div class="step">THEN</div>
+        <h3>Swallow to strike</h3>
+        <p>Tap when you swallow. Rushed bites barely scratch it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="gobblins">
+  <div class="wrap">
+    <div class="head">
+      <h2>Meet the Gobblins</h2>
+      <p>Little monsters that feed on rushed meals. Each kind of food attracts a different one.</p>
+    </div>
+    <div class="roster"><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiklEQVR42mNggIIXNxb8ZyASYFULEiTGELzqQBJdWV54MU7NhDSiY6yapUQUwBiXJnR5rLb//vEBqyEgMZAcVlegG4CuEJc42f7HaQDMj4QwXgNgYQCjTzjoofAJBiKxtsMNwOW/EysqUDDOcIhyMfiPbhC6ZmyGgPTA9DKQawAKAJmGYiIOgK4OAIEKhMFcYIS1AAAAAElFTkSuQmCC" width="48" height="45" alt=""></div><figcaption>Wolfdown<small>Burger / sandwich</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiUlEQVR42mNggIJPJ7z/MxAJsKoFCRJjCF51IIkTAXp4MU7NhDSiY6yapUQUwBiXJnR5rLb//vEBqyEgMZAcVlegG4CuEJc42f7HaQDMj4QwXgNgYQAPCwdUcYKBSKztcANw+e/DggIUjDMcugwU/qMbhK4ZmyEgPTC9DOQagAJApqGYiAOgqwMABNiG4ZIrhakAAAAASUVORK5CYII=" width="48" height="45" alt=""></div><figcaption>Slice Snatcher<small>Pizza</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAh0lEQVR42mNggILfPz78ZyASYFULEiTGELzqQBInVljhxTg1E9KIjrFqlhJRAGNcmtDlsdoOciI2Q0Bi6F7EaQC2sMAmTrb/cRoA8yMhjNcAWBjAw8JBD4VPMBCJtR1uAC7/fbgzAQXjDIeuAoX/6Aaha8ZmCEgPTC8DuQagAJBpKCbiAOjqABDAvOkolV9vAAAAAElFTkSuQmCC" width="48" height="45" alt=""></div><figcaption>Slurp Serpent<small>Pasta / noodles</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiklEQVR42mNggIIXNxb8ZyASYFULEiTGELzqQBJVUSvwYpyaCWlEx1g1S4kogDEuTejyWG3//eMDVkNAYiA5rK5ANwBdIS5xsv2P0wCYHwlhvAbAwgBGn3DQQ+ETDERibYcbgMt/OxbcQME4w8HPquA/ukHomrEZAtID08tArgEoAGQaiok4ALo6AKmIovFiit2sAAAAAElFTkSuQmCC" width="48" height="45" alt=""></div><figcaption>Shovel Imp<small>Rice / curry</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiElEQVR42mNggILfPz78ZyASYFULEiTGELzqQBJeXSvwYpyaCWlEx1g1S4kogDEuTejyWG0HORGbISAxdC/iNABbWGATJ9v/OA2A+ZEQxmsALAxg9AkHPRQ+wUAk1na4Abj8t+DCAxSMMxz0ogr+oxuErhmbISA9ML0M5BqAAkCmoZiIA6CrAwDSsakJaOfuTAAAAABJRU5ErkJggg==" width="48" height="45" alt=""></div><figcaption>Forkstorm Sprite<small>Salad</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiklEQVR42mNggIJPhwz+MxAJsKoFCRJjCF51IIkdLi54MU7NhDSiY6yapUQUwBiXJnR5rLb//vEBqyEgMZAcVlegG4CuEJc42f7HaQDMj4QwXgNgYQCjTzjoofAJBiKxtsMNwOW/F11VKBhnOFRpaPxHNwhdMzZDQHpgehnINQAFgExDMREHQFcHAPfmgdXNI1/oAAAAAElFTkSuQmCC" width="48" height="45" alt=""></div><figcaption>Scald Gobblin<small>Soup / stew</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiklEQVR42mNggIIbOyb8ZyASYFULEiTGELzqQBJRUVl4MU7NhDSiY6yapUQUwBiXJnR5rLb//vEBqyEgMZAcVlegG4CuEJc42f7HaQDMj4QwXgNgYQCjTzjoofAJBiKxtsMNwOW/WbNWoWCc4WBl5fEf3SB0zdgMAemB6WUg1wAUADINxUQcAF0dAIx6dPUFNY1nAAAAAElFTkSuQmCC" width="48" height="45" alt=""></div><figcaption>Plate Bandit<small>Meat &amp; veg</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiElEQVR42mNggILfPz78ZyASYFULEiTGELzqQBI3JljhxTg1E9KIjrFqlhJRAGNcmtDlsdoOciI2Q0Bi6F7EaQC2sMAmTrb/cRoA8yMhjNcAWBjA6BMOeih8goFIrO1wA3D578uJBhSMMxxmJSj8RzcIXTM2Q0B6YHoZyDUABYBMQzERB0BXBwDG6Le58fli8wAAAABJRU5ErkJggg==" width="48" height="45" alt=""></div><figcaption>Rush Hour Gremlin<small>Eggs / breakfast</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiElEQVR42mNggILfPz78ZyASYFULEiTGELzqQBIPNhjgxTg1E9KIjrFqlhJRAGNcmtDlsdoOciI2Q0Bi6F7EaQC2sMAmTrb/cRoA8yMhjNcAWBjA6BMOeih8goFIrO1wA3D578udBhSMMxy0VBT+oxuErhmbISA9ML0M5BqAAkCmoZiIA6CrAwBCRcDlZRS2xgAAAABJRU5ErkJggg==" width="48" height="45" alt=""></div><figcaption>Gulp Wasp<small>Fruit</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiklEQVR42mNggIIXNxb8ZyASYFULEiTGELzqQBJdXVV4MU7NhDSiY6yapUQUwBiXJnR5rLb//vEBqyEgMZAcVlegG4CuEJc42f7HaQDMj4QwXgNgYQCjTzjoofAJBiKxtsMNwOW/Eyd2oGCc4RAV5fcf3SB0zdgMAemB6WUg1wAUADINxUQcAF0dAH+Nq9k86pVTAAAAAElFTkSuQmCC" width="48" height="45" alt=""></div><figcaption>Mindless Muncher<small>Snack</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiElEQVR42mNggILfPz78ZyASYFULEiTGELzqQBI3ombhxTg1E9KIjrFqlhJRAGNcmtDlsdoOciI2Q0Bi6F7EaQC2sMAmTrb/cRoA8yMhjNcAWBjA6BMOeih8goFIrO1wA3D578uGCygYZzjMssr6j24QumZshoD0wPQykGsACgCZhmIiDoCuDgALeczNcC+aygAAAABJRU5ErkJggg==" width="48" height="45" alt=""></div><figcaption>Sugar Rush<small>Dessert</small></figcaption></figure><figure><div class="mon"><img class="px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiUlEQVR42mNggIITDnr/GYgEWNWCBIkxBK86kISVVRRejFMzIY3oGKtmKREFMMalCV0eq+2/f3zAaghIDCSH1RXoBqArxCVOtv9xGgDzIyGM1wBYGMBoULQh8wkGIrG2ww3A5b+srC4UjDMclJSs/qMbhK4ZmyEgPTC9DOQagAJApqGYiAOgqwMAE41EUYJVQoAAAAAASUVORK5CYII=" width="48" height="45" alt=""></div><figcaption>The Hurry<small>Something else</small></figcaption></figure></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap why">
+    <div>
+      <div class="head" style="margin-bottom:18px"><h2>Why eat slowly?</h2></div>
+      <p>Feeling full takes around twenty minutes to register. Eat faster than that and you finish before your body says "enough".</p>
+      <p>Research backs this up: people who eat more slowly tend to eat less, and don't feel hungrier afterwards.</p>
+      <p class="src"><a href="https://academic.oup.com/ajcn/article/100/1/123/4576445">Robinson et al., American Journal of Clinical Nutrition, 2014</a></p>
+    </div>
+    <div class="note notch"><b>WHILE YOU CHEW</b>Tips like this one pop up in the game while you chew. Put the fork down between bites. The pause is the whole technique.</div>
+  </div>
+</section>
+
+<div class="end">
+  <div class="wrap">
+    <h2>Next meal, bring the knight.</h2>
+    <div class="end-btns">
+      <a class="btn" href="./play.html">PLAY NOW</a>
+      <a class="btn ghost" href="./feedback.html">SHARE FEEDBACK</a>
+    </div>
+  </div>
+</div>
+
+<footer><div class="wrap">Free, no account, and it installs on your phone like an app. A game, not medical advice. <a href="./feedback.html">Share feedback</a><br>© 2026 Eat Slow Quest. All rights reserved.</div></footer>
+
+</body>
+</html>

@@ -1,0 +1,2656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c0c14">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="./icons/icon-192.png">
+<title>Eat Slow — Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0c0c14;
+    --surface: #14141e;
+    --text: #e0ddd4;
+    --muted: #5a5870;
+    --player-hp: #5b8c5a;
+    --player-hp-bg: #1e2e1e;
+    --boss-hp: #b84444;
+    --boss-hp-bg: #2e1414;
+    --charge: #d4a843;
+    --charge-bg: #2e2614;
+    --border: #2a2838;
+    --xp: #7a6ab8;
+    --combo: #e07030;
+    --read: 'VT323', ui-monospace, monospace;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Press Start 2P', monospace;
+    height: 100%;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  /* ===== SHARED CHARACTER GEOMETRY =====
+     Pixel art hangs DOWN from its 4px anchor; char-box gives it a real
+     bounding box (62x106 player, 80x106 boss) so feet sit at box bottom. */
+  .char { position: absolute; top: 0; image-rendering: pixelated; width: 4px; height: 4px; }
+  .char-box { position: relative; width: 62px; height: 106px; }
+  .char-box.boss-box { width: 96px; }
+  .char-box .player-char { left: 2px; }
+  .char-box .boss-char { left: 22px; }
+
+  .player-char {
+    color: transparent; background: transparent;
+    box-shadow:
+       8px  0 0 #4a6a8a,  12px  0 0 #4a6a8a,
+       4px  4px 0 #4a6a8a,  8px  4px 0 #5a7ea0, 12px  4px 0 #5a7ea0, 16px  4px 0 #4a6a8a,
+       4px  8px 0 #4a6a8a,  8px  8px 0 #dcc8a0, 12px  8px 0 #dcc8a0, 16px  8px 0 #4a6a8a,
+       8px 12px 0 #dcc8a0, 12px 12px 0 #c4a878,
+       4px 16px 0 #3a5a7a,  8px 16px 0 #4a7090, 12px 16px 0 #4a7090, 16px 16px 0 #3a5a7a,
+       0px 20px 0 #4a7090,  4px 20px 0 #4a7090,  8px 20px 0 #5a8aaa, 12px 20px 0 #5a8aaa, 16px 20px 0 #4a7090, 20px 20px 0 #4a7090,
+       0px 24px 0 #4a7090,  4px 24px 0 #4a7090,  8px 24px 0 #5a8aaa, 12px 24px 0 #5a8aaa, 16px 24px 0 #4a7090, 20px 24px 0 #4a7090,
+       4px 28px 0 #3a5a7a,  8px 28px 0 #4a7090, 12px 28px 0 #4a7090, 16px 28px 0 #3a5a7a,
+       4px 32px 0 #8a6a3a,  8px 32px 0 #a0803a, 12px 32px 0 #a0803a, 16px 32px 0 #8a6a3a,
+       4px 36px 0 #3a4a5a,  8px 36px 0 #3a4a5a, 12px 36px 0 #3a4a5a, 16px 36px 0 #3a4a5a,
+       4px 40px 0 #3a4a5a,  8px 40px 0 #3a4a5a, 12px 40px 0 #3a4a5a, 16px 40px 0 #3a4a5a,
+       0px 44px 0 #5a4a3a,  4px 44px 0 #5a4a3a, 12px 44px 0 #5a4a3a, 16px 44px 0 #5a4a3a, 20px 44px 0 #5a4a3a,
+      24px 12px 0 #c0c0d0, 24px 16px 0 #c0c0d0, 24px 20px 0 #e0e0f0, 24px 24px 0 #e0e0f0,
+      24px  8px 0 #e0e0f0, 24px  4px 0 #f0f0ff, 24px  0px 0 #f0f0ff,
+      24px 28px 0 #8a6a3a;
+    transform: scale(2.2);
+    transform-origin: 2px 0;
+  }
+  .boss-char {
+    color: transparent; background: transparent;
+    box-shadow:
+       8px  0px 0 #4a2848,  12px  0px 0 #4a2848, 16px  0px 0 #4a2848,
+       4px  4px 0 #5a3058,  8px  4px 0 #6a3868, 12px  4px 0 #6a3868, 16px  4px 0 #6a3868, 20px  4px 0 #5a3058,
+       4px  8px 0 #5a3058,  8px  8px 0 #6a3868, 12px  8px 0 #6a3868, 16px  8px 0 #6a3868, 20px  8px 0 #5a3058,
+       8px 12px 0 #c0a878, 12px 12px 0 #c0a878, 16px 12px 0 #b09060,
+       8px 16px 0 #c0a878, 12px 16px 0 #a07858, 16px 16px 0 #c0a878,
+       4px 20px 0 #5a3058,  8px 20px 0 #6a3868, 12px 20px 0 #7a4878, 16px 20px 0 #6a3868, 20px 20px 0 #5a3058,
+       0px 24px 0 #5a3058,  4px 24px 0 #6a3868,  8px 24px 0 #7a4878, 12px 24px 0 #8a5888, 16px 24px 0 #7a4878, 20px 24px 0 #6a3868, 24px 24px 0 #5a3058,
+       0px 28px 0 #5a3058,  4px 28px 0 #6a3868,  8px 28px 0 #7a4878, 12px 28px 0 #8a5888, 16px 28px 0 #7a4878, 20px 28px 0 #6a3868, 24px 28px 0 #5a3058,
+       0px 32px 0 #4a2848,  4px 32px 0 #5a3058,  8px 32px 0 #6a3868, 12px 32px 0 #7a4878, 16px 32px 0 #6a3868, 20px 32px 0 #5a3058, 24px 32px 0 #4a2848,
+       4px 36px 0 #4a2848,  8px 36px 0 #5a3058, 12px 36px 0 #6a3868, 16px 36px 0 #5a3058, 20px 36px 0 #4a2848,
+       4px 40px 0 #4a2848,  8px 40px 0 #5a3058, 12px 40px 0 #6a3868, 16px 40px 0 #5a3058, 20px 40px 0 #4a2848,
+       8px 44px 0 #3a2838, 12px 44px 0 #3a2838, 16px 44px 0 #3a2838,
+      -4px  0px 0 #8a7040, -4px  4px 0 #8a7040, -4px  8px 0 #8a7040, -4px 12px 0 #8a7040,
+      -4px 16px 0 #8a7040, -4px 20px 0 #705830, -4px 24px 0 #705830, -4px 28px 0 #705830,
+      -4px 32px 0 #705830, -4px 36px 0 #604820, -4px 40px 0 #604820,
+      -8px  0px 0 #d4a843, 0px  0px 0 #d4a843, -4px -4px 0 #f0d060;
+    transform: scale(2.2);
+    transform-origin: 2px 0;
+  }
+  .char-box.flip .char { transform: scale(2.2) scaleX(-1); transform-origin: 12px 0; }
+  .char-shadow {
+    position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
+    width: 54px; height: 8px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.4), transparent);
+    border-radius: 50%;
+  }
+
+  /* ===== BATTLE APP ===== */
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: max(12px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; }
+  .title { font-size: 8px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  .header-right { display: flex; gap: 12px; align-items: center; }
+  .level-tag { font-size: 8px; color: var(--xp); letter-spacing: 1px; }
+  .timer { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+  .xp-strip { height: 4px; background: rgba(122, 106, 184, 0.15); border-radius: 2px; overflow: hidden; }
+  .xp-fill { height: 100%; background: var(--xp); width: 0%; border-radius: 2px; transition: width 0.6s ease; }
+  .region-banner { line-height: 1.8; font-size: 8px; color: var(--muted); letter-spacing: 2px; text-align: center; text-transform: uppercase; }
+  .region-banner strong { color: var(--charge); }
+
+  .arena {
+    flex: 1;
+    min-height: 240px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(ellipse 120% 50% at 50% 100%, rgba(60, 50, 90, 0.35), transparent),
+      linear-gradient(to bottom, #0e0e18 0%, #131320 50%, #1a1830 100%);
+  }
+  .arena::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 45% 10%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 75% 25%, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 90% 8%, rgba(255,255,255,0.15), transparent),
+      radial-gradient(1px 1px at 30% 5%, rgba(255,255,255,0.2), transparent);
+    pointer-events: none;
+  }
+  .arena .ground {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 26%;
+    background: linear-gradient(to bottom, #2a2148 0%, #1a1530 100%);
+    pointer-events: none;
+  }
+  .arena .ground::before {
+    content: '';
+    position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.14), transparent);
+  }
+  .vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 95% 80% at 50% 45%, transparent 60%, rgba(0,0,0,0.38) 100%);
+    pointer-events: none;
+    z-index: 6;
+    border-radius: inherit;
+  }
+  .arena-flash { position: absolute; inset: 0; opacity: 0; z-index: 20; pointer-events: none; border-radius: 16px; }
+
+  .hp-section { display: flex; gap: 8px; padding: 14px 14px 4px; z-index: 2; }
+  .hp-block { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .hp-block.boss { align-items: flex-end; }
+  .hp-label { font-size: 8px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hp-bar-wrap {
+    width: 100%; height: 16px;
+    background: var(--player-hp-bg);
+    border-radius: 3px; overflow: hidden; position: relative;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .hp-block.boss .hp-bar-wrap { background: var(--boss-hp-bg); }
+  .hp-bar { height: 100%; background: var(--player-hp); border-radius: 2px; transition: width 0.4s ease; position: relative; }
+  .hp-bar::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent 60%); border-radius: 2px; }
+  .hp-block.boss .hp-bar { background: var(--boss-hp); }
+  .hp-text {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    font-size: 8px; color: rgba(255,255,255,0.7);
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.5); z-index: 1;
+  }
+
+  .combo-row { display: flex; justify-content: center; padding: 2px 0 0; z-index: 2; min-height: 14px; }
+  .combo-tag { font-size: 8px; color: var(--combo); letter-spacing: 1px; opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: scale(0.8); }
+  .combo-tag.active { opacity: 1; transform: scale(1); }
+  .combo-tag.bump { animation: comboBump 0.4s; }
+  @keyframes comboBump { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
+
+  .stage { flex: 1; position: relative; z-index: 2; }
+  .fighter-wrap { position: absolute; bottom: 20%; transition: transform 0.3s ease; }
+  .fighter-wrap.player { left: calc(19% - 31px); }
+  .fighter-wrap.boss { left: calc(81% - 48px); }
+  .fighter-wrap.idle { animation: idleBob 2.5s ease-in-out infinite; }
+  @keyframes idleBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+  .fighter-wrap.player.chewing { animation: chompBounce 0.45s ease-in-out infinite; }
+  @keyframes chompBounce {
+    0%   { transform: translateY(0) scaleY(1) scaleX(1); }
+    25%  { transform: translateY(-6px) scaleY(1.08) scaleX(0.95); }
+    50%  { transform: translateY(2px) scaleY(0.88) scaleX(1.08); }
+    75%  { transform: translateY(-3px) scaleY(1.04) scaleX(0.97); }
+    100% { transform: translateY(0) scaleY(1) scaleX(1); }
+  }
+  .fighter-wrap.player.chewing::before {
+    content: ''; position: absolute; inset: -14px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(212, 168, 67, 0.25), transparent 65%);
+    animation: auraGlow 1.6s ease-in-out infinite;
+    pointer-events: none; z-index: -1;
+  }
+  .fighter-wrap.player.chewing.supercharged::before {
+    background: radial-gradient(circle, rgba(240, 208, 96, 0.45), rgba(212, 168, 67, 0.15) 50%, transparent 70%);
+    animation: auraGlowSuper 0.8s ease-in-out infinite;
+  }
+  @keyframes auraGlow { 0%, 100% { transform: scale(0.85); opacity: 0.4; } 50% { transform: scale(1.15); opacity: 0.9; } }
+  @keyframes auraGlowSuper { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.3); opacity: 1; } }
+
+  .chomp-particle { position: absolute; font-size: 13px; pointer-events: none; z-index: 12; animation: chompFloat 1.6s ease-out forwards; }
+  @keyframes chompFloat {
+    0%   { opacity: 0.9; transform: translate(0, 0) scale(1) rotate(0deg); }
+    40%  { opacity: 0.7; transform: translate(var(--dx), var(--dy)) scale(0.85) rotate(var(--rot)); }
+    100% { opacity: 0; transform: translate(var(--dx2), var(--dy2)) scale(0.3) rotate(var(--rot2)); }
+  }
+  .food-particle {
+    position: absolute; font-size: 17px; pointer-events: none; z-index: 25;
+    animation: foodBurst var(--dur) cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+  }
+  @keyframes foodBurst {
+    0%   { opacity: 1; transform: translate(0, 0) scale(0.5) rotate(0deg); }
+    15%  { opacity: 1; transform: translate(calc(var(--vx) * 0.15), calc(var(--vy) * 0.15)) scale(1.25) rotate(calc(var(--spin) * 0.15)); }
+    55%  { opacity: 1; transform: translate(calc(var(--vx) * 0.55), calc(var(--vy) * 0.55 + 14px)) scale(0.95) rotate(calc(var(--spin) * 0.55)); }
+    100% { opacity: 0; transform: translate(var(--vx), calc(var(--vy) + 55px)) scale(0.4) rotate(var(--spin)); }
+  }
+
+  .fighter-wrap.player.attacking { animation: playerAttack 0.6s ease-in-out; }
+  @keyframes playerAttack {
+    0%   { transform: translateX(0); }
+    35%  { transform: translateX(min(38vw, 160px)) scale(1.08); }
+    50%  { transform: translateX(min(38vw, 160px)) scale(1.03); }
+    100% { transform: translateX(0) scale(1); }
+  }
+  .fighter-wrap.boss.attacking { animation: bossAttack 0.6s ease-in-out; }
+  @keyframes bossAttack {
+    0%   { transform: translateX(0); }
+    35%  { transform: translateX(max(-38vw, -160px)) scale(1.08); }
+    50%  { transform: translateX(max(-38vw, -160px)) scale(1.03); }
+    100% { transform: translateX(0) scale(1); }
+  }
+  .fighter-wrap.hit .char { animation: hitFlash 0.4s; }
+  @keyframes hitFlash {
+    0%, 100% { filter: brightness(1); }
+    15% { filter: brightness(3) saturate(0); }
+    30% { filter: brightness(0.7); }
+    50% { filter: brightness(2) saturate(0.3); }
+    70% { filter: brightness(0.9); }
+  }
+  .fighter-wrap.dead {
+    animation: none !important;
+    transform: rotate(90deg) translateY(14px) !important;
+    opacity: 0.5;
+    transition: all 0.8s ease;
+  }
+  .fighter-wrap.boss.entering { animation: bossEnter 0.8s ease-out; }
+  @keyframes bossEnter {
+    0%   { transform: translateY(-200px) scale(0.5); opacity: 0; }
+    60%  { transform: translateY(8px) scale(1.08); opacity: 1; }
+    80%  { transform: translateY(-4px) scale(0.98); }
+    100% { transform: translateY(0) scale(1); }
+  }
+
+  .dmg-float {
+    position: absolute; font-size: 14px; pointer-events: none; z-index: 30;
+    animation: floatUp 1.2s ease-out forwards;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.7);
+  }
+  .dmg-float.to-boss { color: #6bff9b; }
+  .dmg-float.to-player { color: #ff6b6b; }
+  .dmg-float.heal { color: #8be08b; }
+  .dmg-float.crit { font-size: 20px; color: #f0d060; }
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    20%  { transform: translateY(-12px) scale(1.4); }
+    100% { opacity: 0; transform: translateY(-55px) scale(0.8); }
+  }
+  .perfect-banner {
+    position: absolute; top: 26%; left: 50%; transform: translateX(-50%);
+    font-size: 16px; color: #f0d060; letter-spacing: 3px;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.7), 0 0 20px rgba(240, 208, 96, 0.6);
+    z-index: 35; pointer-events: none;
+    animation: perfectPop 1.4s ease-out forwards;
+  }
+  @keyframes perfectPop {
+    0%   { opacity: 0; transform: translateX(-50%) scale(0.3) rotate(-8deg); }
+    20%  { opacity: 1; transform: translateX(-50%) scale(1.3) rotate(3deg); }
+    35%  { transform: translateX(-50%) scale(1) rotate(0deg); }
+    75%  { opacity: 1; transform: translateX(-50%) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) scale(1.1) translateY(-20px); }
+  }
+  .slash { position: absolute; width: 40px; height: 40px; pointer-events: none; z-index: 15; }
+  .slash-line {
+    position: absolute; width: 100%; height: 3px;
+    background: linear-gradient(90deg, transparent, #fff, transparent);
+    top: 50%; left: 0;
+    animation: slashAnim 0.3s ease-out forwards;
+    border-radius: 2px; opacity: 0;
+  }
+  .slash-line:nth-child(1) { --r: -30deg; }
+  .slash-line:nth-child(2) { --r: 20deg; animation-delay: 0.05s; }
+  .slash-line:nth-child(3) { --r: -60deg; animation-delay: 0.1s; }
+  @keyframes slashAnim {
+    0%   { opacity: 0; transform: rotate(var(--r, -30deg)) scaleX(0); }
+    30%  { opacity: 1; transform: rotate(var(--r, -30deg)) scaleX(1.2); }
+    100% { opacity: 0; transform: rotate(var(--r, -30deg)) scaleX(0.5); }
+  }
+  .battle-log {
+    position: absolute; bottom: 8px; left: 10px; right: 10px;
+    text-align: center; font-size: 8px; color: var(--muted);
+    letter-spacing: 0.5px; z-index: 7; pointer-events: none; line-height: 1.6;
+  }
+  .boss-plate { position: absolute; top: 52px; right: 14px; text-align: right; z-index: 3; pointer-events: none; }
+  .boss-plate-sub { font-size: 8px; color: var(--muted); letter-spacing: 1px; }
+
+  .controls { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .chew-bar-section { width: 100%; display: none; flex-direction: column; gap: 4px; }
+  .chew-bar-section.active { display: flex; }
+  .chew-bar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+  .chew-bar-label { font-size: 8px; letter-spacing: 2px; color: var(--charge); text-transform: uppercase; animation: chewPulse 1.3s ease-in-out infinite; }
+  .chew-bar-label.perfect-ready { color: #f0d060; animation: chewPulseFast 0.6s ease-in-out infinite; }
+  .chew-bar-time { font-size: 10px; color: var(--text); }
+  @keyframes chewPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes chewPulseFast { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .chew-bar-track {
+    width: 100%; height: 14px;
+    background: var(--charge-bg); border-radius: 4px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.04); position: relative;
+  }
+  .chew-bar-track::after {
+    content: ''; position: absolute;
+    left: 83.3%; top: 0; bottom: 0; width: 2px;
+    background: rgba(240, 208, 96, 0.5);
+  }
+  .chew-bar-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #a07830, var(--charge), #f0d060);
+    border-radius: 3px; transition: width 0.15s linear; position: relative;
+  }
+  .chew-bar-fill::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.25), transparent 60%);
+    border-radius: 3px;
+  }
+  .btn-row { display: flex; gap: 8px; width: 100%; }
+  .action-btn {
+    flex: 1; padding: 16px 8px; border: none; border-radius: 12px;
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+    color: var(--bg);
+  }
+  .action-btn.bite { background: var(--player-hp); }
+  .action-btn.swallow { background: var(--charge); }
+  .prompt { font-size: 8px; color: var(--muted); letter-spacing: 1px; text-align: center; min-height: 10px; padding: 2px 0; }
+  .footer { display: flex; gap: 8px; }
+  .btn-secondary {
+    flex: 1; background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 12px; border-radius: 8px; font-family: 'Press Start 2P', monospace; font-size: 8px;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-secondary.primary-action { border-color: var(--charge); color: var(--charge); }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--muted); color: var(--text); }
+  .btn-secondary:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  /* ===== SUMMARY ===== */
+  .overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px; z-index: 100; opacity: 0; transition: opacity 0.3s;
+    overflow-y: auto;
+  }
+  .overlay.show { display: flex; opacity: 1; }
+  .results { max-width: 420px; width: 100%; text-align: center; }
+  .results-emoji { font-size: 56px; margin-bottom: 12px; }
+  .results-title { font-size: 8px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+  .results-rating { font-size: 14px; margin-bottom: 6px; letter-spacing: 1px; }
+  .results-desc { font-size: 8px; color: var(--muted); margin-bottom: 16px; line-height: 1.8; }
+  .boss-status-line { font-size: 8px; color: var(--boss-hp); margin-bottom: 16px; line-height: 1.8; }
+  .boss-status-line.slain { color: var(--player-hp); }
+  .xp-gain { font-size: 9px; color: var(--xp); margin-bottom: 12px; letter-spacing: 1px; }
+  .levelup-flash { font-size: 10px; color: #f0d060; margin-bottom: 12px; letter-spacing: 2px; animation: chewPulse 1s ease-in-out infinite; }
+  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; text-align: left; }
+  .result-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .result-label { font-size: 8px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .result-value { font-size: 14px; }
+  .history-section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); text-align: left; }
+  .history-title { font-size: 8px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+  .history-row { display: flex; justify-content: space-between; font-size: 8px; color: var(--muted); padding: 4px 0; }
+  .history-row span:last-child { color: var(--text); }
+  .close-btn {
+    width: 100%; background: var(--text); color: var(--bg); border: none;
+    padding: 16px; border-radius: 10px; font-family: 'Press Start 2P', monospace; font-size: 8px; letter-spacing: 2px;
+    text-transform: uppercase; cursor: pointer; margin-top: 20px;
+  }
+
+  /* ===== FOOD SPRITES =====
+     Built in JS from 16px pixel maps; one 1px element carries every pixel
+     as a box-shadow, scaled up. Offsets start at 1 because a shadow at 0,0
+     would hide under the element itself. */
+  .sprite { display: block; image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: pixelated; }
+  #bossSprite { position: absolute; left: 0; bottom: 0; }
+  .fighter-wrap.hit .sprite { animation: hitFlash 0.4s; }
+
+  /* Keyframes shared by the title + home scenes */
+  @keyframes fireGlow {
+    0%, 100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+    50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+  }
+  @keyframes flicker {
+    0%   { transform: translateX(-50%) scale(1, 1) rotate(-2deg); }
+    100% { transform: translateX(-50%) scale(1.12, 1.06) rotate(2deg); }
+  }
+  .shooting-star {
+    position: absolute; width: 70px; height: 2px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.85), transparent);
+    border-radius: 2px; animation: shoot 1.1s ease-out forwards; pointer-events: none; z-index: 3;
+  }
+  @keyframes shoot {
+    0%   { opacity: 0; transform: translate(0, 0) rotate(16deg); }
+    12%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-190px, 62px) rotate(16deg); }
+  }
+
+  /* ===== HOME =====
+     One compact, centred stack in the landing page's style: framed card,
+     then the big "I'm about to eat" button in the middle of the screen. */
+  .home {
+    position: fixed; inset: 0; z-index: 200;
+    display: none; flex-direction: column;
+    background: var(--night, #14121e); overflow-y: auto;
+  }
+  .home.show { display: flex; }
+  .home-bar {
+    background: #000; display: flex; justify-content: space-between; align-items: center;
+    padding: max(10px, env(safe-area-inset-top)) 16px 10px; flex: none;
+  }
+  .home-bar span { font-size: 10px; letter-spacing: 1px; word-spacing: -0.3em; color: var(--text); }
+  .home-bar .icon-btn { width: 34px; height: 34px; border: 2px solid #333; color: var(--text); background: transparent; }
+  .home-main {
+    flex: 1; width: 100%; max-width: 420px; margin: 0 auto;
+    display: flex; flex-direction: column; justify-content: center; gap: 14px;
+    padding: 24px 16px max(24px, env(safe-area-inset-bottom));
+  }
+  .notch {
+    clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+  }
+  .home-card { background: #0c0b14; padding: 12px; }
+  .home-scene {
+    position: relative; height: 150px; overflow: hidden;
+    display: flex; align-items: flex-end; justify-content: center; gap: 36px; padding-bottom: 14px;
+    background: linear-gradient(#120e24, #2a1e44);
+  }
+  .home-scene::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: linear-gradient(#2a2148, #1a1530); }
+  .home-scene > * { position: relative; z-index: 1; }
+  .home-id { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; }
+  .home-hi { font-size: 11px; letter-spacing: 1px; word-spacing: -0.3em; color: var(--text); }
+  .home-lv { font-size: 9px; color: var(--xp); letter-spacing: 1px; }
+  .home-xp { margin-top: 10px; height: 6px; }
+  .home-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .home-stats div { background: #1c1a28; padding: 10px 8px; text-align: center; }
+  .home-stats small { display: block; font-size: 7px; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+  .home-stats strong { font-size: 13px; color: var(--charge); font-weight: normal; }
+  .home-eat {
+    width: 100%; border: none; cursor: pointer; color: #121212;
+    background: #f2c230; padding: 20px 16px;
+    box-shadow: inset -4px -4px 0 #c99a14, inset 4px 4px 0 #ffe27a;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    font-family: 'Press Start 2P', monospace;
+  }
+  .home-eat .big { font-size: 13px; letter-spacing: 1px; word-spacing: -0.3em; }
+  .home-eat .sub { font-family: var(--read); font-size: 18px; color: #4a3a10; }
+  .home-eat:hover { background: #ffd23d; }
+  .home-eat:active { box-shadow: inset 4px 4px 0 #c99a14, inset -4px -4px 0 #ffe27a; }
+  .home-secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .home-secondary button {
+    background: transparent; border: 2px solid #2a2838; color: rgba(224, 221, 212, 0.75); cursor: pointer;
+    font-family: 'Press Start 2P', monospace; font-size: 8px; letter-spacing: 1px; padding: 14px 8px;
+  }
+  .home-secondary button:hover { border-color: var(--muted); color: var(--text); }
+  .home-toast { font-family: var(--read); font-size: 19px; color: var(--charge); text-align: center; display: none; }
+  .home-toast.show { display: block; }
+  .save-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .save-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(224, 221, 212, 0.6);
+    padding: 10px 12px; border-radius: 6px; font-family: 'Press Start 2P', monospace; font-size: 8px;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  }
+  .save-btn:active { color: var(--text); border-color: var(--muted); }
+  .save-btn.danger { color: #d88; border-color: rgba(184, 68, 68, 0.4); }
+
+  /* ===== MEAL PICKER ===== */
+  .picker { position: fixed; inset: 0; z-index: 250; background: var(--bg); display: none; overflow-y: auto; }
+  .picker.show { display: block; }
+  .picker-inner {
+    max-width: 520px; margin: 0 auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  }
+  .picker-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .picker-head .icon-btn { width: 40px; height: 40px; flex: none; font-size: 14px; }
+  .picker-title { font-size: 12px; letter-spacing: 1px; line-height: 1.5; }
+  .picker-sub { font-size: 8px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin: 20px 0 10px; }
+  .food-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .food-card {
+    background: var(--surface); border: 2px solid var(--border); border-radius: 12px;
+    padding: 12px 4px 10px; cursor: pointer; color: var(--text);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .food-card .slot { height: 48px; display: flex; align-items: flex-end; }
+  .food-card span { font-family: var(--read); font-size: 17px; line-height: 1; text-align: center; }
+  .food-card.sel { border-color: var(--charge); background: #221e14; }
+  .size-row { display: flex; gap: 8px; }
+  .size-btn {
+    flex: 1; background: var(--surface); border: 2px solid var(--border); border-radius: 10px;
+    padding: 12px 6px; cursor: pointer; color: var(--text); font-family: 'Press Start 2P', monospace; font-size: 9px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .size-btn small { font-family: var(--read); font-size: 16px; color: var(--muted); }
+  .size-btn.sel { border-color: var(--charge); background: #221e14; }
+  .pick-est { font-family: var(--read); font-size: 19px; color: rgba(224, 221, 212, 0.75); text-align: center; margin: 18px 0 14px; min-height: 66px; line-height: 1.15; }
+  .pick-est b { color: var(--charge); font-weight: normal; }
+  #fightBtn { width: 100%; }
+  #fightBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Food power: glows over the knight while chewing, then fires at the Gobblin */
+  .power-orb {
+    position: absolute; left: 50%; top: -34px; transform: translateX(-50%) scale(0.6);
+    opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none;
+    filter: drop-shadow(0 0 6px rgba(240, 208, 96, 0.8));
+  }
+  .fighter-wrap.player.chewing .power-orb { opacity: 1; transform: translateX(-50%) scale(1); animation: orbFloat 1.2s ease-in-out infinite; }
+  .fighter-wrap.player.supercharged .power-orb { filter: drop-shadow(0 0 12px rgba(240, 208, 96, 1)); }
+  @keyframes orbFloat { 50% { margin-top: -5px; } }
+  .power-shot {
+    position: absolute; z-index: 14; pointer-events: none; transform: translateX(-50%);
+    filter: drop-shadow(0 0 8px rgba(240, 208, 96, 0.9));
+    animation: shot .45s ease-in forwards;
+  }
+  @keyframes shot { 0% { transform: translateX(-50%) scale(0.8); } 100% { transform: translateX(calc(-50% + var(--dx))) scale(1.3) rotate(360deg); opacity: 0.4; } }
+  .picker-hint { font-family: var(--read); font-size: 18px; color: var(--charge); margin-top: 4px; }
+
+  /* Trophy shelf in the meal log */
+  .shelf { display: flex; flex-wrap: wrap; gap: 12px 16px; }
+  .shelf-item { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 8px; color: var(--charge); }
+
+  /* Bag + loot + fight notes */
+  .bag-body { min-height: 0; }
+  .bag-item { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .bag-item.locked { opacity: 0.4; }
+  .bag-icon { font-size: 26px; width: 36px; text-align: center; font-family: 'Press Start 2P', monospace; }
+  .bag-item.locked .bag-icon { font-size: 14px; }
+  .bag-name { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--text); margin-bottom: 4px; }
+  .bag-eff { font-size: 18px; color: var(--muted); }
+  .results-loot {
+    display: flex; gap: 12px; align-items: center; text-align: left;
+    font-family: var(--read); font-size: 19px; line-height: 1.15;
+    background: #221e14; border: 2px solid var(--charge); border-radius: 10px; padding: 10px 12px; margin: 0 0 12px;
+    animation: perfectPopIn .6s ease-out;
+  }
+  .results-loot b { display: block; font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--charge); font-weight: normal; margin-bottom: 6px; }
+  .loot-icon { font-size: 30px; }
+  @keyframes perfectPopIn { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+  /* Message strip under the arena: battle log normally, the tip while chewing. */
+  .msg-slot { position: relative; height: 64px; flex: none; }
+  .msg-slot .battle-log, .msg-slot .fight-tip {
+    position: absolute; inset: 0; margin: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    transition: opacity .4s;
+  }
+  .msg-slot .battle-log { bottom: auto; left: 0; right: 0; height: 100%; padding: 0 8px; pointer-events: none; }
+  .fight-tip {
+    opacity: 0; pointer-events: none; padding: 6px 12px;
+    background: rgba(212, 168, 67, 0.08); border: 1px solid rgba(212, 168, 67, 0.45); border-radius: 10px;
+    font-family: var(--read); font-size: 18px; line-height: 1.15; color: var(--text);
+  }
+  .fight-tip.show { opacity: 1; }
+  .msg-slot:has(.fight-tip.show) .battle-log { opacity: 0; }
+  .fight-tip b { display: block; font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--charge); font-weight: normal; margin-bottom: 5px; letter-spacing: 1px; }
+  /* ===== TITLE SCREEN ===== */
+  .title-screen {
+    position: fixed; inset: 0;
+    z-index: 400;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    background:
+      radial-gradient(ellipse 140% 60% at 50% 110%, rgba(90, 60, 40, 0.25), transparent 60%),
+      linear-gradient(to bottom, #120e24 0%, #1e1638 45%, #2a1e44 75%, #1a1430 100%);
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .title-screen.show { display: flex; opacity: 1; }
+  .title-screen::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 12% 12%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 34% 6%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(2px 2px at 58% 16%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 78% 9%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1px 1px at 92% 22%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(2px 2px at 68% 32%, rgba(255,255,255,0.2), transparent);
+    pointer-events: none;
+  }
+  .title-screen::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 90% 70% at 50% 45%, transparent 55%, rgba(0,0,0,0.45) 100%);
+    pointer-events: none;
+  }
+  .title-logo { margin-top: max(12vh, 80px); text-align: center; z-index: 2; }
+  .title-main {
+    font-size: 30px;
+    letter-spacing: 4px;
+    color: var(--text);
+    text-shadow: 0 4px 0 #3a2850, 0 8px 24px rgba(0,0,0,0.6);
+    line-height: 1.3;
+  }
+  .title-sub {
+    font-size: 11px; letter-spacing: 10px; color: var(--charge);
+    margin-top: 10px;
+    text-shadow: 0 0 18px rgba(212, 168, 67, 0.5);
+  }
+  .title-tagline { font-size: 8px; letter-spacing: 3px; color: rgba(224, 221, 212, 0.4); margin-top: 16px; text-transform: uppercase; }
+  .title-scene {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 50px;
+    padding-bottom: 20px;
+    z-index: 2;
+    width: 100%;
+  }
+  .title-knight { animation: idleBob 3s ease-in-out infinite; }
+  .campfire { position: relative; width: 60px; height: 106px; }
+  .campfire-glow {
+    position: absolute;
+    bottom: -20px; left: 50%;
+    transform: translateX(-50%);
+    width: 220px; height: 130px;
+    background: radial-gradient(ellipse, rgba(224, 112, 48, 0.28), rgba(240, 208, 96, 0.08) 50%, transparent 70%);
+    animation: fireGlow 2.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .campfire-logs {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 44px; height: 10px;
+  }
+  .campfire-logs::before, .campfire-logs::after {
+    content: '';
+    position: absolute;
+    width: 40px; height: 7px;
+    background: #4a3222;
+    border-radius: 3px;
+    top: 2px;
+  }
+  .campfire-logs::before { transform: rotate(14deg); left: 0; }
+  .campfire-logs::after { transform: rotate(-14deg); left: 4px; background: #3a2818; }
+  .flame {
+    position: absolute;
+    bottom: 7px; left: 50%;
+    width: 24px; height: 34px;
+    transform: translateX(-50%);
+    background: radial-gradient(circle at 50% 85%, #f0d060 15%, #e07030 55%, rgba(184, 68, 68, 0.6) 80%, transparent 92%);
+    border-radius: 50% 50% 48% 52% / 65% 65% 35% 35%;
+    animation: flicker 0.55s ease-in-out infinite alternate;
+  }
+  .flame.inner {
+    width: 12px; height: 18px;
+    bottom: 9px;
+    background: radial-gradient(circle at 50% 80%, #fff3c0 20%, #f0d060 70%, transparent 95%);
+    animation: flicker 0.4s ease-in-out infinite alternate-reverse;
+  }
+  .ember {
+    position: absolute;
+    bottom: 40px; left: 50%;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: #f0d060;
+    animation: emberRise 2.4s linear infinite;
+    opacity: 0;
+  }
+  .ember:nth-child(6) { animation-delay: 0.9s; margin-left: -7px; }
+  .ember:nth-child(7) { animation-delay: 1.6s; margin-left: 6px; }
+  @keyframes emberRise {
+    0%   { opacity: 0; transform: translate(0, 0); }
+    15%  { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(6px, -55px); }
+  }
+  .title-menu {
+    width: 100%;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 24px max(32px, env(safe-area-inset-bottom));
+    z-index: 2;
+  }
+  .title-btn {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 17px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.45);
+  }
+  .title-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.45); }
+  .title-btn.primary { background: var(--charge); color: var(--bg); }
+  .title-btn.secondary { background: rgba(224, 221, 212, 0.92); color: var(--bg); }
+  .title-btn.ghost {
+    background: transparent;
+    color: rgba(224, 221, 212, 0.55);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: none;
+    font-size: 8px;
+    padding: 13px;
+  }
+  .name-row { display: none; gap: 8px; }
+  .name-row.show { display: flex; }
+  .name-input {
+    flex: 1;
+    background: rgba(0,0,0,0.35);
+    border: 2px solid var(--charge);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    padding: 14px 12px;
+    letter-spacing: 1px;
+    outline: none;
+    min-width: 0;
+  }
+  .name-input::placeholder { color: rgba(224, 221, 212, 0.3); }
+  .name-go {
+    background: var(--charge); color: var(--bg);
+    border: none; border-radius: 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px; padding: 0 18px; cursor: pointer;
+  }
+  .title-note {
+    font-size: 8px;
+    color: rgba(224, 221, 212, 0.3);
+    letter-spacing: 1px;
+    text-align: center;
+    line-height: 1.8;
+    margin-top: 4px;
+  }
+  .action-btn, .close-btn {
+    box-shadow: 0 4px 0 rgba(0,0,0,0.45);
+    transition: transform 0.06s ease, box-shadow 0.06s ease;
+  }
+  .action-btn:active, .close-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.45);
+  }
+
+  .battle-transition {
+    position: fixed; inset: 0;
+    z-index: 300;
+    pointer-events: none;
+    background: #000;
+    opacity: 0;
+  }
+  .battle-transition.go { animation: battleFlash 0.7s ease-in-out; }
+  @keyframes battleFlash {
+    0%   { opacity: 0; }
+    40%  { opacity: 1; }
+    60%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ===== READABILITY =====
+     Pixel font stays for labels and buttons; anything you actually have to
+     read (log, prompts, signs, dialogue, notes) uses VT323 at a real size. */
+  .battle-log, .prompt, .sign-bubble, .results-desc, .boss-status-line,
+  .title-note, .hud-sub, .hud-toast, .help-body, .results-tip {
+    font-family: var(--read);
+    letter-spacing: 0.3px;
+    text-transform: none;
+  }
+  .battle-log { font-size: 18px; line-height: 1.15; color: rgba(224, 221, 212, 0.75); }
+  .prompt { font-size: 19px; color: rgba(224, 221, 212, 0.7); min-height: 22px; }
+  .sign-bubble { font-size: 19px; line-height: 1.2; width: 250px; }
+  .sign-bubble .bubble-title { font-family: 'Press Start 2P', monospace; font-size: 8px; }
+  .results-desc { font-size: 20px; line-height: 1.2; }
+  .boss-status-line { font-size: 19px; line-height: 1.2; }
+  .copyright { font-size: 7px; letter-spacing: 1px; color: rgba(224, 221, 212, 0.35); text-align: center; margin-top: 14px; }
+  .title-note { font-size: 17px; line-height: 1.2; color: rgba(224, 221, 212, 0.45); }
+  .hud-sub { font-size: 18px; color: rgba(224, 221, 212, 0.7); margin-top: 8px; }
+  .hud-toast { font-size: 19px; line-height: 1.2; }
+  .hp-label { font-size: 8px; }
+
+  /* Chew bar: visible thresholds for combo (12s) and perfect (25s) */
+  .chew-bar-track::after { display: none; }
+  .chew-mark { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(240, 208, 96, 0.55); z-index: 1; }
+  .chew-legend { position: relative; height: 12px; font-size: 8px; color: var(--muted); }
+  .chew-legend span { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; }
+  .chew-legend span.hit { color: var(--charge); }
+
+  .action-btn { font-size: 10px; padding: 18px 8px; }
+
+  /* Small round icon buttons (help) */
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    font-family: 'Press Start 2P', monospace; font-size: 10px; cursor: pointer;
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  /* Hub: meal is the main action, walking is optional */
+  .hub-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 340px; }
+  .hub-stat { font-size: 8px; }
+  .save-btn { font-size: 8px; padding: 10px 12px; }
+
+  /* Title screen */
+  .title-tagline { font-size: 8px; }
+  .home-feedback { display: block; text-align: center; margin-top: 18px; font-size: 8px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+  .title-link {
+    display: block; text-align: center; margin-top: 2px;
+    font-family: var(--read); font-size: 19px; color: var(--charge); text-decoration: none;
+  }
+  .title-link:hover { text-decoration: underline; }
+  .name-row.show { display: flex; }
+  .title-btn.small { font-size: 8px; padding: 12px; }
+
+  /* Results tip */
+  .results-tip {
+    font-size: 19px; line-height: 1.2; color: var(--text);
+    background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--charge);
+    border-radius: 8px; padding: 10px 12px; margin: 4px 0 16px; text-align: left;
+  }
+  .results-tip b { display: block; font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--charge); font-weight: normal; margin-bottom: 6px; letter-spacing: 1px; }
+
+  /* ===== HOW TO PLAY ===== */
+  .help {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(8, 8, 14, 0.94);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px; overflow-y: auto;
+  }
+  .help.show { display: flex; }
+  .help-card {
+    width: 100%; max-width: 420px;
+    background: var(--surface); border: 2px solid var(--border); border-radius: 14px;
+    padding: 22px 20px 20px;
+  }
+  .help-kicker { font-size: 8px; color: var(--charge); letter-spacing: 2px; margin-bottom: 12px; }
+  .help-title { font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+  .help-body { font-size: 20px; line-height: 1.2; color: rgba(224, 221, 212, 0.85); min-height: 150px; }
+  .help-body p + p { margin-top: 10px; }
+  .help-body .k {
+    font-family: 'Press Start 2P', monospace; font-size: 8px; padding: 3px 6px; border-radius: 4px;
+    color: var(--bg); background: var(--player-hp); white-space: nowrap; vertical-align: 2px;
+  }
+  .help-body .k.gold { background: var(--charge); }
+  .help-dots { display: flex; gap: 6px; justify-content: center; margin: 18px 0 14px; }
+  .help-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .help-dots i.on { background: var(--charge); }
+  .help-nav { display: flex; gap: 10px; }
+  .help-nav button { flex: 1; }
+
+  @media (max-height: 720px) {
+    .hub-panel { gap: 7px; bottom: max(14px, env(safe-area-inset-bottom)); }
+    .hub-actions { gap: 7px; }
+    .hub-actions .title-btn { padding: 13px; }
+    .save-btn { padding: 7px 10px; }
+  }
+
+  /* ===== MEAL LOG ===== */
+  .log { align-items: flex-start; }
+  .log-card { margin: auto 0; }
+  .log-summary { min-height: 0; }
+  .log-chart-title { font-size: 8px; color: var(--muted); letter-spacing: 1px; margin: 20px 0 8px; text-transform: uppercase; display: flex; justify-content: space-between; gap: 12px; }
+  .log-chart-title .ref { color: rgba(240, 208, 96, 0.7); white-space: nowrap; }
+  .log-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .log-chart rect.bar { fill: var(--charge); cursor: pointer; }
+  .log-chart rect.bar.died { fill: var(--boss-hp); }
+  .log-chart rect.bar.sel { fill: #f0d060; }
+  .log-chart text { font-family: var(--read); font-size: 13px; fill: var(--muted); }
+  .log-readout { font-family: var(--read); font-size: 18px; color: var(--text); margin-top: 10px; min-height: 22px; }
+  .log-list { font-family: var(--read); font-size: 18px; }
+  .log-row { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); color: rgba(224, 221, 212, 0.8); }
+  .log-row span:first-child { color: var(--muted); }
+  .log-empty { font-family: var(--read); font-size: 18px; color: var(--muted); }
+
+  /* Desktop scale (see applyScale) */
+  :root { --z: 1; }
+  .app { zoom: var(--z); height: calc(100vh / var(--z)); height: calc(100dvh / var(--z)); }
+  .home-bar, .home-main, .picker-inner, .help-card, .results,
+  .title-logo, .title-scene, .title-menu { zoom: var(--z); }
+
+  button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--charge); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<!-- BATTLE -->
+<div class="app">
+  <div class="header">
+    <div class="title">Eat Slow Quest</div>
+    <div class="header-right">
+      <div class="level-tag" id="levelTag">LV 1</div>
+      <div class="timer" id="mealTimer">00:00</div>
+      <button class="icon-btn" id="soundBtn" aria-label="Mute sounds">🔊</button>
+      <button class="icon-btn" id="battleHelpBtn" aria-label="How to play">?</button>
+    </div>
+  </div>
+  <div class="xp-strip"><div class="xp-fill" id="xpFill"></div></div>
+  <div class="region-banner" id="regionBanner"></div>
+
+  <div class="arena" id="arena">
+    <div class="arena-flash" id="arenaFlash"></div>
+    <div class="ground"></div>
+    <div class="vignette"></div>
+
+    <div class="hp-section">
+      <div class="hp-block player">
+        <div class="hp-label" id="playerHpNameLabel">You</div>
+        <div class="hp-bar-wrap">
+          <div class="hp-bar" id="playerHpBar" style="width:100%"></div>
+          <div class="hp-text" id="playerHpText">100</div>
+        </div>
+      </div>
+      <div class="hp-block boss">
+        <div class="hp-label" id="bossHpLabel">Boss</div>
+        <div class="hp-bar-wrap">
+          <div class="hp-bar" id="bossHpBar" style="width:100%"></div>
+          <div class="hp-text" id="bossHpText">85</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="combo-row"><span class="combo-tag" id="comboTag">🔥 COMBO ×1</span></div>
+
+    <div class="boss-plate">
+      <div class="boss-plate-sub" id="bossPlateSub"></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="fighter-wrap player idle" id="playerWrap">
+        <div class="char-box">
+          <div class="power-orb" id="powerOrb"></div>
+          <div class="char player-char"></div>
+          <div class="char-shadow"></div>
+        </div>
+      </div>
+      <div class="fighter-wrap boss idle" id="bossWrap">
+        <div class="char-box boss-box">
+          <div id="bossSprite"></div>
+          <div class="char-shadow"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="msg-slot" aria-live="polite">
+    <div class="battle-log" id="battleLog"></div>
+    <div class="fight-tip" id="fightTip"></div>
+  </div>
+
+  <div class="controls" id="controls">
+    <div class="chew-bar-section" id="chewSection">
+      <div class="chew-bar-header">
+        <span class="chew-bar-label" id="chewLabel">Chewing</span>
+        <span class="chew-bar-time" id="chewTime">0.0s</span>
+      </div>
+      <div class="chew-bar-track">
+        <div class="chew-mark" style="left:40%"></div>
+        <div class="chew-mark" style="left:83.3%"></div>
+        <div class="chew-bar-fill" id="chewBarFill"></div>
+      </div>
+      <div class="chew-legend">
+        <span id="legendCombo" style="left:40%">12s combo</span>
+        <span id="legendPerfect" style="left:83.3%">25s perfect</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="action-btn bite" id="mainBtn"><span id="btnLabel">I took a bite</span></button>
+      <button class="action-btn swallow" id="swallowBtn" style="display:none">I swallowed</button>
+    </div>
+    <div class="prompt" id="prompt">Take a real bite, then tap the button</div>
+  </div>
+
+  <div class="footer">
+    <button class="btn-secondary primary-action" id="finishBtn" disabled>Done eating</button>
+    <button class="btn-secondary" id="resetBtn">Leave meal</button>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="overlay" id="overlay">
+  <div class="results">
+    <div class="results-emoji" id="resEmoji">⚔️</div>
+    <div class="results-title" id="resTitle">Meal Complete</div>
+    <div class="results-rating" id="resRating">Mindful Warrior</div>
+    <div class="results-desc" id="resDesc">You fought with patience</div>
+    <div class="boss-status-line" id="bossStatusLine"></div>
+    <div class="xp-gain" id="xpGain"></div>
+    <div class="levelup-flash" id="levelupFlash" style="display:none">⬆ LEVEL UP!</div>
+    <div class="results-loot" id="resLoot" style="display:none"></div>
+    <div class="results-tip" id="resTip"></div>
+    <div class="results-grid">
+      <div class="result-item"><div class="result-label">Duration</div><div class="result-value" id="resDuration">—</div></div>
+      <div class="result-item"><div class="result-label">Bites</div><div class="result-value" id="resBites">—</div></div>
+      <div class="result-item"><div class="result-label">Avg Chew</div><div class="result-value" id="resChew">—</div></div>
+      <div class="result-item"><div class="result-label">Best Combo</div><div class="result-value" id="resCombo">—</div></div>
+    </div>
+    <div class="history-section">
+      <div class="history-title">Your Legend</div>
+      <div class="history-row"><span>Level</span><span id="statLevel">—</span></div>
+      <div class="history-row"><span>Day Streak</span><span id="statStreak">—</span></div>
+      <div class="history-row"><span>Foes Beaten</span><span id="statSlain">—</span></div>
+      <div class="history-row"><span>Meals</span><span id="statBattles">—</span></div>
+      <div class="history-row"><span>Best Avg Chew</span><span id="statBestChew">—</span></div>
+    </div>
+    <button class="close-btn" id="closeBtn">Continue</button>
+    <button class="title-btn ghost small" id="resLogBtn" style="margin-top:10px;width:100%">See my progress</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="home" id="home">
+  <div class="home-bar">
+    <span>EAT SLOW QUEST</span>
+    <button class="icon-btn" id="homeHelpBtn" aria-label="How to play">?</button>
+  </div>
+  <div class="home-main">
+    <div class="home-card notch">
+      <div class="home-scene">
+        <div class="title-knight">
+          <div class="char-box">
+            <div class="char player-char"></div>
+            <div class="char-shadow"></div>
+          </div>
+        </div>
+        <div class="campfire">
+          <div class="campfire-glow"></div>
+          <div class="flame"></div>
+          <div class="flame inner"></div>
+          <div class="campfire-logs"></div>
+          <span class="ember"></span><span class="ember"></span><span class="ember"></span>
+        </div>
+      </div>
+      <div class="home-id"><div class="home-hi" id="homeHi">Hi</div><div class="home-lv" id="homeLv">LV 1</div></div>
+      <div class="xp-strip home-xp"><div class="xp-fill" id="homeXp"></div></div>
+      <div class="home-stats">
+        <div><small>STREAK</small><strong id="hStreak">0</strong></div>
+        <div><small>MEALS</small><strong id="hMeals">0</strong></div>
+        <div><small>BEATEN</small><strong id="hBeaten">0</strong></div>
+      </div>
+    </div>
+    <div class="home-toast" id="homeToast"></div>
+    <button class="home-eat" id="eatBtn"><span class="big">🍽 I'M ABOUT TO EAT</span><span class="sub">Pick your meal and face a Gobblin</span></button>
+    <div class="home-secondary">
+      <button id="homeLogBtn">📜 MY MEALS</button>
+      <button id="homeBagBtn">🎒 BAG</button>
+    </div>
+    <a class="home-feedback" href="./feedback.html">Share feedback</a>
+  </div>
+</div>
+
+<!-- MEAL PICKER -->
+<div class="picker" id="picker">
+  <div class="picker-inner">
+    <div class="picker-head">
+      <button class="icon-btn" id="pickBack" aria-label="Back">◀</button>
+      <div><div class="picker-title">What are you eating?</div><div class="picker-hint">Your meal is your power.</div></div>
+    </div>
+    <div class="food-grid" id="foodGrid"></div>
+    <div class="picker-sub">How much?</div>
+    <div class="size-row" id="sizeRow"></div>
+    <div class="pick-est" id="pickEst">Pick what's on your plate.</div>
+    <button class="title-btn primary" id="fightBtn" disabled>Fight!</button>
+  </div>
+</div>
+
+<!-- BAG -->
+<div class="help" id="bag" role="dialog" aria-modal="true" aria-labelledby="bagTitle">
+  <div class="help-card">
+    <div class="help-kicker">YOUR BAG</div>
+    <div class="help-title" id="bagTitle">Gear</div>
+    <div class="help-body bag-body" id="bagBody"></div>
+    <button class="title-btn primary small" id="bagClose" style="width:100%;margin-top:18px">Close</button>
+  </div>
+</div>
+
+<!-- TITLE SCREEN -->
+<div class="title-screen show" id="titleScreen">
+  <div class="title-logo">
+    <div class="title-main">EAT<br>SLOW</div>
+    <div class="title-sub">QUEST</div>
+    <div class="title-tagline">Chew slowly. Beat the Gobblins.</div>
+  </div>
+  <div class="title-scene">
+    <div class="title-knight">
+      <div class="char-box">
+        <div class="char player-char"></div>
+        <div class="char-shadow"></div>
+      </div>
+    </div>
+    <div class="campfire">
+      <div class="campfire-glow"></div>
+      <div class="flame"></div>
+      <div class="flame inner"></div>
+      <div class="campfire-logs"></div>
+      <span class="ember"></span><span class="ember"></span><span class="ember"></span>
+    </div>
+  </div>
+  <div class="title-menu">
+    <div class="name-row" id="nameRow">
+      <input class="name-input" id="nameInput" type="text" maxlength="12" placeholder="Your name (optional)" autocomplete="off" aria-label="Hero name">
+    </div>
+    <button class="title-btn primary" id="beginBtn">Begin</button>
+    <button class="title-btn ghost small" id="titleHelpBtn">How to play</button>
+    <a class="title-link" href="./">Why eat slowly? &rarr;</a>
+    <div class="title-note">Play it during a real meal. Progress stays on this device.</div>
+    <div class="copyright">© 2026 Eat Slow Quest</div>
+  </div>
+</div>
+
+<!-- HOW TO PLAY -->
+<div class="help" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="help-card">
+    <div class="help-kicker" id="helpKicker">HOW TO PLAY · 1/4</div>
+    <div class="help-title" id="helpTitle"></div>
+    <div class="help-body" id="helpBody"></div>
+    <div class="help-dots" id="helpDots"></div>
+    <div class="help-nav">
+      <button class="title-btn ghost small" id="helpBack">Back</button>
+      <button class="title-btn primary small" id="helpNext">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEAL LOG -->
+<div class="help" id="log" role="dialog" aria-modal="true" aria-labelledby="logTitle">
+  <div class="help-card log-card">
+    <div class="help-kicker">YOUR MEALS</div>
+    <div class="help-title" id="logTitle"></div>
+    <div class="help-body log-summary" id="logSummary"></div>
+    <div id="logCharts">
+      <div class="log-chart-title">Average chew per bite <span class="ref">- - 12s combo</span></div>
+      <div class="log-chart" id="chewChart"></div>
+      <div class="log-chart-title">Meal length <span class="ref">- - 20 min</span></div>
+      <div class="log-chart" id="lenChart"></div>
+      <div class="log-readout" id="logReadout">Tap a bar to see that meal.</div>
+      <div id="shelfWrap"><div class="log-chart-title">Gobblins beaten</div><div class="shelf" id="shelf"></div></div>
+      <div class="log-chart-title">Recent meals</div>
+      <div class="log-list" id="logList"></div>
+    </div>
+    <div class="log-chart-title">Backup</div>
+    <div class="save-row">
+      <button class="save-btn" id="saveExport">Copy save code</button>
+      <button class="save-btn" id="saveImport">Load save</button>
+      <button class="save-btn danger" id="startOver">Start over</button>
+    </div>
+    <button class="title-btn primary small" id="logClose" style="width:100%;margin-top:18px">Close</button>
+    <div class="copyright">© 2026 Eat Slow Quest. All rights reserved.</div>
+  </div>
+</div>
+
+<div class="battle-transition" id="battleTransition"></div>
+
+<script>
+const STATE = { IDLE: 'idle', READY: 'ready', CHEWING: 'chewing', FINISHED: 'finished' };
+const $ = id => document.getElementById(id);
+
+// ===== FOOD FOES =====
+// 16px-wide pixel maps. '.' is empty; the face (brows, eyes, mouth) is
+// stamped on afterwards at the row given by `eyes`.
+const SPRITES = {
+  burger: { eyes: 5, pal: { o: '#d08a3c', s: '#f4e2b8', g: '#5fa84a', c: '#f2c230', m: '#6b3a22', b: '#b86e2a' }, map: [
+    '................',
+    '.....oooooo.....',
+    '...oooosoooso...',
+    '..osoooooooooo..',
+    '.oooooooooosooo.',
+    '.oooooooooooooo.',
+    '.oooooooooooooo.',
+    '.oooooooooooooo.',
+    '.oooooooooooooo.',
+    'g.gggggggggggg.g',
+    '.cccccccccccccc.',
+    '.mmmmmmmmmmmmmm.',
+    '.mmmmmmmmmmmmmm.',
+    '.bbbbbbbbbbbbbb.',
+    '..bbbbbbbbbbbb..',
+  ] },
+  pizza: { eyes: 5, pal: { o: '#c98a3a', c: '#f2c84b', p: '#b8402e' }, map: [
+    '................',
+    '................',
+    '.oooooooooooooo.',
+    '.oooooooooooooo.',
+    '..cpcccccccccp..',
+    '..cccccccccccc..',
+    '...cccccccccc...',
+    '...cccccccccc...',
+    '....cpcccccc....',
+    '....cccccccc....',
+    '.....ccccpc.....',
+    '......cccc......',
+    '......cccc......',
+    '.......cc.......',
+  ] },
+  bowl: { eyes: 6, pal: { f: '#e8c46a', h: '#f5dc94', u: '#e8e2d6', v: '#b9b2a4' }, map: [
+    '................',
+    '................',
+    '................',
+    '....hfhffhfh....',
+    '..fffhffffhfff..',
+    '.uuuuuuuuuuuuuu.',
+    '.uuuuuuuuuuuuuu.',
+    '.uuuuuuuuuuuuuu.',
+    '..uuuuuuuuuuuu..',
+    '..uuuuuuuuuuuu..',
+    '...uuuuuuuuuu...',
+    '....vvvvvvvv....',
+    '.....vvvvvv.....',
+  ] },
+  plate: { eyes: 7, pal: { m: '#a8582e', w: '#f0e8d8', g: '#5fa84a', p: '#e8e2d6', v: '#b9b2a4' }, map: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '......mmmm......',
+    '....mmmmmmmm....',
+    '...mmmmmmmmmww..',
+    '...mmmmmmmm.ww..',
+    '..gg.mmmmm..gg..',
+    'pppppppppppppppp',
+    '.pppppppppppppp.',
+    '...vvvvvvvvvv...',
+  ] },
+  egg: { eyes: 7, pal: { e: '#f6f3ea', y: '#f2b630' }, map: [
+    '................',
+    '................',
+    '......eeee......',
+    '....eeeeeeee....',
+    '..eeeeeeeeeeee..',
+    '.eeeeeyyyyeeeee.',
+    '.eeeeyyyyyyeeee.',
+    'eeeeyyyyyyyyeeee',
+    'eeeeyyyyyyyyeeee',
+    '.eeeyyyyyyyyeee.',
+    '.eeeeyyyyyyeeee.',
+    '..eeeeyyyyeeeee.',
+    '...eeeeeeeeeee..',
+    '.....eeeeeee....',
+  ] },
+  apple: { eyes: 6, pal: { r: '#c8382e', n: '#5a3a1e', g: '#5fa84a' }, map: [
+    '................',
+    '.......n.gg.....',
+    '.......ngg......',
+    '....rrrnrrrr....',
+    '..rrrrrrrrrrrr..',
+    '.rrrrrrrrrrrrrr.',
+    '.rrrrrrrrrrrrrr.',
+    '.rrrrrrrrrrrrrr.',
+    '.rrrrrrrrrrrrrr.',
+    '.rrrrrrrrrrrrrr.',
+    '.rrrrrrrrrrrrrr.',
+    '..rrrrrrrrrrrr..',
+    '...rrrrrrrrrr...',
+    '....rrr..rrr....',
+  ] },
+  cookie: { eyes: 6, pal: { o: '#c8904a', n: '#4a2a18' }, map: [
+    '................',
+    '................',
+    '.....oooooo.....',
+    '...oooooooooo...',
+    '..oonoooooonoo..',
+    '.oooooooooooooo.',
+    '.oooooooooooooo.',
+    'ooooooooooooooon',
+    'onoooooooooooooo',
+    '.oooooooooooooo.',
+    '.oooooooooooono.',
+    '..oonoooooooo...',
+    '...oooooooooo...',
+    '.....oooooo.....',
+  ] },
+  cake: { eyes: 6, pal: { f: '#f4e6ee', c: '#f2d08a', j: '#c8406a', r: '#d0283a' }, map: [
+    '................',
+    '................',
+    '..........rr....',
+    '..........rr....',
+    '.....ffffffffff.',
+    '..fffffffffffff.',
+    '.cccccccccccccc.',
+    '.cccccccccccccc.',
+    '.jjjjjjjjjjjjjj.',
+    '.cccccccccccccc.',
+    '.cccccccccccccc.',
+    '.jjjjjjjjjjjjjj.',
+    '.cccccccccccccc.',
+    '.cccccccccccccc.',
+  ] },
+  gobblin: { face: false, pal: { b: '#6a9a4a', d: '#3e5e2a', l: '#a8c878', h: '#e8d8a0', K: '#1a1420', W: '#fbf8f0', R: '#c8402e' }, map: [
+    '..h..........h..',
+    '..hh........hh..',
+    '...hbbbbbbbbh...',
+    '..bbbbbbbbbbbb..',
+    '.bbKKbbbbbbKKbb.',
+    '.bbbWKbbbbKWbbb.',
+    '.bbbWWbbbbWWbbb.',
+    '.bbbbbbbbbbbbbb.',
+    '.bbKKKKKKKKKKbb.',
+    '.bbKWKWKRKWKKbb.',
+    '.bbbKKKKKKKKbbb.',
+    'bbbbbbllllbbbbbb',
+    'd.bbbllllllbbb.d',
+    '..bbbllllllbbb..',
+    '..dd........dd..',
+  ] },
+  cloche: { eyes: 7, pal: { d: '#8a8e98', s: '#c0c4cc', h: '#e6e8ee', p: '#e8e2d6' }, map: [
+    '................',
+    '................',
+    '.......dd.......',
+    '......dddd......',
+    '.....ssssss.....',
+    '...sssssssshss..',
+    '..sssssssssshss.',
+    '.sssssssssssshs.',
+    '.ssssssssssssss.',
+    '.ssssssssssssss.',
+    '.ssssssssssssss.',
+    'pppppppppppppppp',
+    '.pppppppppppppp.',
+  ] },
+};
+
+// Your meal is your power source. Each meal also attracts its own Gobblin:
+// a monster that feeds on rushed meals. bites = rough bite count for a
+// regular portion; HP is derived from it so a ~15s chew pace takes the
+// Gobblin down right around your last bite.
+const g = (b, d, l, h) => ({ b, d, l, h });
+const FOOD_TYPES = [
+  { id: 'burger',  label: 'Burger / sandwich', noun: 'burger',    sprite: 'burger', bites: 14, power: 'Hearty',     attack: 'Hearty Slam',
+    foe: { name: 'Wolfdown',         sub: 'Swallows sandwiches whole',  pal: g('#8a6a4a', '#5a4430', '#c8a878', '#e8d8a0'), intro: 'Wolfdown sniffs your burger and licks its chops!' } },
+  { id: 'pizza',   label: 'Pizza',             noun: 'pizza',     sprite: 'pizza',  bites: 18, power: 'Ember',      attack: 'Oven Blast',
+    foe: { name: 'Slice Snatcher',   sub: 'Folds every slice in half',  pal: g('#c8502e', '#8a3020', '#f0a070', '#f2c84b'), intro: 'The Slice Snatcher wants that pizza gone in four bites!' } },
+  { id: 'noodles', label: 'Pasta / noodles',   noun: 'noodles',   sprite: 'bowl',   bites: 28, power: 'Noodle',     attack: 'Noodle Whip',
+    foe: { name: 'Slurp Serpent',    sub: 'Hoovers noodles unchewed',   pal: g('#c8a83a', '#8a7020', '#f0dc90', '#fbf8f0'), intro: 'The Slurp Serpent hisses: "Just slurp it all!"' } },
+  { id: 'rice',    label: 'Rice / curry',      noun: 'rice bowl', sprite: 'bowl',   bites: 30, power: 'Spice',      attack: 'Curry Flare', pal: { f: '#c8862e', h: '#f4f1ea', u: '#4a74a8', v: '#34547c' },
+    foe: { name: 'Shovel Imp',       sub: 'Eats with a spade',          pal: g('#7a5aa8', '#4e3a70', '#b8a0d8', '#e8d8a0'), intro: 'The Shovel Imp starts shoveling! Rice everywhere!' } },
+  { id: 'salad',   label: 'Salad',             noun: 'salad',     sprite: 'bowl',   bites: 25, power: 'Leaf',       attack: 'Vine Lash', pal: { f: '#5fa84a', h: '#c8402e', u: '#d8cfb8', v: '#a89e86' },
+    foe: { name: 'Forkstorm Sprite', sub: 'Stabs, stabs, stabs',        pal: g('#4a8aa8', '#2e5a70', '#a0d0e0', '#fbf8f0'), intro: 'The Forkstorm Sprite whirls in, forks first!' } },
+  { id: 'soup',    label: 'Soup / stew',       noun: 'soup',      sprite: 'bowl',   bites: 28, power: 'Steam',      attack: 'Steam Wave', pal: { f: '#d8702e', h: '#f09a50', u: '#8a5a3a', v: '#63402a' },
+    foe: { name: 'Scald Gobblin',    sub: 'Never waits for it to cool', pal: g('#b84444', '#7a2828', '#e88a7a', '#f2c230'), intro: 'The Scald Gobblin gulps boiling soup. It dares you to do the same!' } },
+  { id: 'plate',   label: 'Meat & veg',        noun: 'plate',     sprite: 'plate',  bites: 30, power: 'Iron',       attack: 'Iron Strike',
+    foe: { name: 'Plate Bandit',     sub: 'Clears plates in minutes',   pal: g('#5a5a6a', '#3a3a48', '#9a9aaa', '#d8b890'), intro: 'The Plate Bandit eyes your dinner. Hurry, it whispers.' } },
+  { id: 'eggs',    label: 'Eggs / breakfast',  noun: 'breakfast', sprite: 'egg',    bites: 16, power: 'Sunrise',    attack: 'Sunny Flash',
+    foe: { name: 'Rush Hour Gremlin', sub: 'Eats breakfast on the bus', pal: g('#d8903a', '#9a6020', '#f4c880', '#fbf8f0'), intro: 'The Rush Hour Gremlin taps its watch. You\'re late, it says!' } },
+  { id: 'fruit',   label: 'Fruit',             noun: 'fruit',     sprite: 'apple',  bites: 10,  power: 'Zest',       attack: 'Citrus Burst',
+    foe: { name: 'Gulp Wasp',        sub: 'Bite, bite, gone',           pal: g('#e0b030', '#2a2420', '#f4dc80', '#fbf8f0'), intro: 'The Gulp Wasp buzzes around your fruit!' } },
+  { id: 'snack',   label: 'Snack',             noun: 'snack',     sprite: 'cookie', bites: 8,  power: 'Crunch',     attack: 'Crunch Spark',
+    foe: { name: 'Mindless Muncher', sub: 'Eats without noticing',      pal: g('#8a8a7a', '#5a5a4e', '#c8c8b8', '#e8d8a0'), intro: 'The Mindless Muncher reaches for the bag without looking!' } },
+  { id: 'dessert', label: 'Dessert',           noun: 'dessert',   sprite: 'cake',   bites: 12,  power: 'Sugar Star', attack: 'Sprinkle Nova',
+    foe: { name: 'Sugar Rush',       sub: 'Vibrating with impatience',  pal: g('#d85a9a', '#9a3a6a', '#f4b0d0', '#fbf8f0'), intro: 'Sugar Rush zips in, vibrating! Eat it all NOW, it squeaks!' } },
+  { id: 'other',   label: 'Something else',    noun: 'meal',      sprite: 'cloche', bites: 22, power: 'Mystery',    attack: 'Mystery Spell',
+    foe: { name: 'The Hurry',        sub: 'Oldest of the Gobblins',     pal: g('#3a3a5a', '#22223a', '#6a6a8a', '#c8402e'), intro: 'The Hurry arrives. It does not like waiting.' } },
+];
+// Bites = typical portion ÷ typical forkful: pasta ~350g at ~12g, rice ~400g
+// at ~13g, meat & veg ~400g, salad ~250g at ~10g, soup ~350ml at ~12ml,
+// burger ~250g at ~18g, 2–3 slices of pizza, an apple ~150g at ~15g.
+const FOOD_BY_ID = Object.fromEntries(FOOD_TYPES.map(f => [f.id, f]));
+const SIZES = [
+  { id: 'small',   label: 'Small',   hint: 'light portion', mult: 0.6 },
+  { id: 'regular', label: 'Regular', hint: 'normal plate',  mult: 1 },
+  { id: 'big',     label: 'Big',     hint: 'big plate',     mult: 1.4 },
+];
+const SIZE_BY_ID = Object.fromEntries(SIZES.map(s => [s.id, s]));
+
+// ===== SLOW-EATING NOTES (shown mid-fight while you chew) =====
+const TIPS = [
+  'Fullness takes about 20 minutes to reach your brain. Slow eaters give it time to arrive.',
+  'Chewing breaks food down and mixes it with saliva, which starts digestion before you swallow.',
+  'In studies, people who ate more slowly ate less in that meal, and weren\'t hungrier afterwards.',
+  'Put the fork down while you chew. The pause is the whole technique.',
+  'Most flavour comes out while you chew. Less food can feel like more.',
+  'Try smaller bites. They are easier to chew well and slow the whole meal down.',
+  'Halfway through, check in: am I still hungry, or just still eating?',
+  'Eating in front of a screen makes it easy to rush. A glance between bites is enough.',
+  'Take a sip of water between bites. It naturally adds a pause.',
+  'Notice the texture changing as you chew. That is your cue it is ready to swallow.',
+  'A fast meal can leave you overfull twenty minutes later. A slow one lets you stop at "enough".',
+  'Sitting down to eat, rather than eating on the move, makes slowing down much easier.',
+  'You do not have to count chews. Just wait until the food is soft before you swallow.',
+  'Eating with others? Talking between bites is one of the easiest ways to slow down.',
+  'Slower eating is linked to gentler blood sugar rises after meals.',
+];
+const TIP_DELAY_MS = 3500;   // let the bite start before the note fades in
+
+// ===== ITEMS =====
+// Permanent gear found after victories. Bonuses only ever reward the fight
+// itself, never eating faster.
+const ITEMS = [
+  { id: 'fork',   icon: '🍴', name: 'Iron Fork',       effect: '+2 damage on every hit' },
+  { id: 'spoon',  icon: '🥄', name: 'Spoon Shield',    effect: '+15 max HP' },
+  { id: 'cape',   icon: '🧣', name: 'Napkin Cape',     effect: '+5% critical chance' },
+  { id: 'chop',   icon: '🥢', name: 'Chopstick Twins', effect: 'Combos grow stronger (10% per step)' },
+  { id: 'salt',   icon: '🧂', name: 'Salt Crown',      effect: '+15% XP from every meal' },
+  { id: 'pepper', icon: '🌶️', name: 'Pepper Charm',    effect: 'Start every fight with a combo' },
+  { id: 'ladle',  icon: '🍲', name: "Grandma's Ladle", effect: 'Heal 8 HP on every 12s+ chew' },
+  { id: 'crumb',  icon: '✨', name: 'Lucky Crumb',     effect: 'Your first strike always crits' },
+];
+const ITEM_BY_ID = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+const LOOT_CHANCE = 0.5;
+function hasItem(id) { return !!(profile.items && profile.items.includes(id)); }
+
+// Particle emoji for bursts
+const FOODS = ['🍖','🍗','🍞','🥖','🧀','🍎','🍇','🍐','🍒','🥕','🌽','🍄','🥚','🐟','🍯','🥔','🌰','🫐','🧅','🥬'];
+
+// ===== TUNING =====
+const BASE_PLAYER_HP = 100;
+const HP_PER_LEVEL = 5;
+const PLAYER_DMG_BASE = 8;
+const PLAYER_DMG_SCALE = 22;
+const DMG_PER_LEVEL = 0.5;
+const PLAYER_DMG_TAU = 12;
+const BOSS_DMG_BASE = 4;
+const BOSS_DMG_SCALE = 34;
+const BOSS_DMG_TAU = 9;
+const CHARGE_FULL_SEC = 30;
+const PERFECT_SEC = 25;
+const CRIT_CHANCE = 0.10;
+const CRIT_MULT = 1.5;
+const COMBO_MIN_SEC = 12;
+const COMBO_DMG_BONUS = 0.08;
+const COMBO_MAX = 10;
+const TICK_MS = 100;
+const HP_TARGET_SEC = 18;         // chewing this long per bite beats the foe near the last bite
+const HP_SLACK = 0.9;             // a little forgiveness: at the target pace it falls ~90% through the plate
+const SEC_PER_BITE_EST = 40;      // chew ~20s + fork down and a pause; puts a regular plate near the 20-minute mark
+const KNOCKDOWN_RECOVER = 0.4;    // fraction of max HP you get back up with
+
+// ===== STATE =====
+let state = STATE.IDLE;
+let mealStart = null;
+let bites = [];
+let currentBiteAt = null;
+let lastSwallowAt = null;
+let tickInterval = null;
+let wakeLock = null;
+let playerHp = BASE_PLAYER_HP;
+let bossHp = 100;
+let foe = null;            // { ft, size, bites, maxHp, name }
+let foeDown = false;
+let biteOfKill = 0;
+let knockdowns = 0;
+let animating = false;
+let combo = 0;
+let bestCombo = 0;
+let mealXp = 0;
+let mealLeveledUp = false;
+let mealDmgDealt = 0;
+let mealSwallows = 0;
+let mealLoot = null;
+let profile = null;
+let firstStrikeCrit = false;
+let tipTimer = null;
+let tipIndex = Math.floor(Math.random() * TIPS.length);
+let pickFood = null;
+let pickSize = 'regular';
+
+// ===== PROFILE =====
+function defaultProfile() {
+  return { heroName: null, level: 1, xp: 0, battles: 0, bestChew: 0, dayStreak: 0, lastPlayedDay: null,
+           meals: [], beaten: {}, items: [], lastFood: null, lastSize: 'regular' };
+}
+function loadProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem('eatSlow_quest') || 'null');
+    return p ? Object.assign(defaultProfile(), p) : defaultProfile();
+  } catch { return defaultProfile(); }
+}
+function saveProfile() { try { localStorage.setItem('eatSlow_quest', JSON.stringify(profile)); } catch {} }
+function xpForLevel(lv) { return lv * 100; }
+function playerMaxHp() { return BASE_PLAYER_HP + (profile.level - 1) * HP_PER_LEVEL + (hasItem('spoon') ? 15 : 0); }
+function totalBeaten() { return Object.values(profile.beaten || {}).reduce((a, b) => a + b, 0); }
+function todayKey(d = new Date()) { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
+function updateStreak() {
+  const today = todayKey();
+  if (profile.lastPlayedDay === today) return;
+  const yKey = todayKey(new Date(Date.now() - 86400000));
+  profile.dayStreak = (profile.lastPlayedDay === yKey) ? profile.dayStreak + 1 : 1;
+  profile.lastPlayedDay = today;
+  saveProfile();
+}
+// The streak only counts if you've eaten with the knight today or yesterday.
+function liveStreak() {
+  const yKey = todayKey(new Date(Date.now() - 86400000));
+  return profile.lastPlayedDay === todayKey() || profile.lastPlayedDay === yKey ? profile.dayStreak : 0;
+}
+function streakText() { const n = liveStreak(); return n + (n >= 3 ? ' 🔥' : ''); }
+function heroDisplayName() { return profile.heroName || 'Wanderer'; }
+function addXp(n) {
+  if (hasItem('salt')) n = Math.round(n * 1.15);
+  mealXp += n;
+  profile.xp += n;
+  while (profile.xp >= xpForLevel(profile.level)) {
+    profile.xp -= xpForLevel(profile.level);
+    profile.level += 1;
+    mealLeveledUp = true;
+  }
+}
+
+// ===== SAVE CODES =====
+function exportSaveCode() {
+  const code = 'ES1.' + btoa(unescape(encodeURIComponent(JSON.stringify(profile))));
+  const done = () => alert('Save code copied. Paste it with "Load save" on your other device.');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(done).catch(() => prompt('Copy your save code:', code));
+  } else {
+    prompt('Copy your save code:', code);
+  }
+}
+function importSaveCode() {
+  const code = prompt('Paste your save code:');
+  if (!code) return;
+  try {
+    const raw = code.trim().replace(/^ES1\./, '');
+    const parsed = JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if (typeof parsed.level !== 'number') throw new Error('bad');
+    profile = Object.assign(defaultProfile(), parsed);
+    saveProfile();
+    closeLog();
+    showHome(`Save loaded! Welcome back, ${heroDisplayName()}.`);
+  } catch {
+    alert('That save code was... not food. Try again.');
+  }
+}
+
+// ===== MATH =====
+function baseHitAt(sec) {
+  return PLAYER_DMG_BASE + (profile.level - 1) * DMG_PER_LEVEL + PLAYER_DMG_SCALE * (1 - Math.exp(-sec / PLAYER_DMG_TAU));
+}
+function playerDamage(chewMs) {
+  let dmg = baseHitAt(chewMs / 1000) + (hasItem('fork') ? 2 : 0);
+  dmg *= 1 + combo * (hasItem('chop') ? 0.10 : COMBO_DMG_BONUS);
+  return dmg;
+}
+function bossDamage(chewMs) {
+  return (BOSS_DMG_BASE + BOSS_DMG_SCALE * Math.exp(-(chewMs / 1000) / BOSS_DMG_TAU)) * foeStrength();
+}
+function foeBites(ft, sizeId) { return Math.max(3, Math.round(ft.bites * SIZE_BY_ID[sizeId].mult)); }
+// HP = the damage you'd deal chewing every bite for HP_TARGET_SEC, counting the
+// combo building up and the average crit. Scales the same for a snack or a feast.
+function foeMaxHp(nb) {
+  let hp = 0;
+  for (let i = 1; i <= nb; i++) hp += baseHitAt(HP_TARGET_SEC) * (1 + Math.min(i, COMBO_MAX) * COMBO_DMG_BONUS) * (1 + CRIT_CHANCE * (CRIT_MULT - 1));
+  return Math.round(hp * HP_SLACK * foeStrength());
+}
+// Gobblins start weak and toughen up as you play. Strength scales their HP and
+// how hard they hit back. 0.6 for your first meals, 1.0 by meal 15 (tuned so
+// ~18s chews win near the last bite), then up to 1.1 by meal 30.
+const FOE_RANKS = [
+  { upTo: 0.7,      name: 'Rookie' },
+  { upTo: 0.9,      name: 'Seasoned' },
+  { upTo: 1.05,     name: 'Veteran' },
+  { upTo: Infinity, name: 'Elite' },
+];
+function foeStrength(meals = profile.battles) {
+  if (meals <= 3) return 0.6;
+  if (meals <= 15) return 0.6 + (meals - 3) / 12 * 0.4;
+  return Math.min(1.1, 1 + (meals - 15) / 15 * 0.1);
+}
+function foeRank(str = foeStrength()) { return FOE_RANKS.find(r => str < r.upTo).name; }
+function mealMinsEst(nb) { return Math.max(1, Math.round(nb * SEC_PER_BITE_EST / 60)); }
+function avgChewMs() {
+  if (!bites.length) return 0;
+  return bites.reduce((a, b) => a + b.chewMs, 0) / bites.length;
+}
+function rating(avgMs) {
+  const s = avgMs / 1000;
+  if (s < 8)  return { name: 'Reckless Fighter',  emoji: '🗡️', desc: 'Strong but reckless' };
+  if (s < 15) return { name: 'Steady Blade',      emoji: '⚔️', desc: 'Decent patience' };
+  if (s < 25) return { name: 'Mindful Warrior',   emoji: '🧘', desc: 'Disciplined and deliberate' };
+  if (s < 35) return { name: 'Zen Master',        emoji: '🕉️', desc: 'Masterful charge control' };
+  return          { name: 'Transcendent',      emoji: '✨', desc: 'Absolute combat meditation' };
+}
+function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  return `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
+}
+function formatSeconds(ms) { return (ms / 1000).toFixed(1) + 's'; }
+
+async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch {} }
+function releaseWakeLock() { if (wakeLock) { try { wakeLock.release(); } catch {} wakeLock = null; } }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && (state === STATE.READY || state === STATE.CHEWING)) {
+    requestWakeLock();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  }
+});
+function haptic(ms = 10) { if (navigator.vibrate) try { navigator.vibrate(ms); } catch {} }
+
+// ===== SPRITES =====
+const spriteCache = {};
+// face: stamp the grumpy face on (only enemies wear one). Food sprites are drawn plain.
+function spriteData(key, palOver, face) {
+  const ck = key + JSON.stringify(palOver || {}) + face;
+  if (spriteCache[ck]) return spriteCache[ck];
+  const s = SPRITES[key];
+  const grid = s.map.map(r => r.padEnd(16, '.').slice(0, 16).split(''));
+  if (face && s.face !== false) {
+    const y = s.eyes;
+    const put = (x, yy, c) => { if (grid[yy]) grid[yy][x] = c; };
+    put(4, y - 2, 'K'); put(11, y - 2, 'K');
+    put(5, y - 1, 'K'); put(6, y - 1, 'K'); put(9, y - 1, 'K'); put(10, y - 1, 'K');
+    put(5, y, 'W'); put(6, y, 'K'); put(9, y, 'K'); put(10, y, 'W');
+    put(5, y + 1, 'W'); put(6, y + 1, 'W'); put(9, y + 1, 'W'); put(10, y + 1, 'W');
+    put(6, y + 3, 'K'); put(7, y + 3, 'W'); put(8, y + 3, 'K'); put(9, y + 3, 'K');
+  }
+  const pal = Object.assign({ K: '#1a1420', W: '#fbf8f0' }, s.pal, palOver || {});
+  let first = grid.length, last = -1;
+  grid.forEach((row, i) => { if (row.some(c => c !== '.')) { first = Math.min(first, i); last = i; } });
+  // Draw once onto a 16px canvas and scale it up with pixelated rendering.
+  // (The old box-shadow approach left hairline gaps at fractional zoom levels.)
+  const h = last - first + 1;
+  const cv = document.createElement('canvas');
+  cv.width = 16; cv.height = h;
+  const ctx = cv.getContext('2d');
+  for (let r = first; r <= last; r++) {
+    grid[r].forEach((c, x) => { if (c !== '.' && pal[c]) { ctx.fillStyle = pal[c]; ctx.fillRect(x, r - first, 1, 1); } });
+  }
+  return (spriteCache[ck] = { src: cv.toDataURL(), w: 16, h });
+}
+function spriteBox(d, scale) {
+  return `<img class="sprite" src="${d.src}" width="${d.w * scale}" height="${d.h * scale}" alt="">`;
+}
+function foodHTML(ft, scale) { return spriteBox(spriteData(ft.sprite, ft.pal, false), scale); }
+function foeHTML(ft, scale) { return spriteBox(spriteData('gobblin', ft.foe.pal, false), scale); }
+
+// ===== KNIGHT AS AN IMAGE =====
+// The knight is authored as box-shadow pixels (4px grid). Like the other
+// sprites, box-shadows show hairline gaps at fractional zoom, so paint the same
+// pixels into a tiny canvas once and use it as a pixelated background.
+(function knightToImage() {
+  const probe = document.querySelector('.player-char');
+  if (!probe) return;
+  const parts = getComputedStyle(probe).boxShadow.split(/,(?![^(]*\))/);
+  const px = [];
+  for (const p of parts) {
+    const color = (p.match(/rgba?\([^)]*\)|#[0-9a-f]+/i) || [])[0];
+    const nums = p.replace(/rgba?\([^)]*\)/, '').match(/-?\d+(\.\d+)?px/g);
+    if (!color || !nums) continue;
+    px.push({ x: parseFloat(nums[0]) / 4, y: parseFloat(nums[1]) / 4, color });
+  }
+  if (!px.length) return;
+  const w = Math.max(...px.map(p => p.x)) + 1, h = Math.max(...px.map(p => p.y)) + 1;
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  px.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 1, 1); });
+  const st = document.createElement('style');
+  st.textContent = `.char.player-char { box-shadow: none; width: ${w * 4}px; height: ${h * 4}px;
+    background: url(${cv.toDataURL()}) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }`;
+  document.head.appendChild(st);
+})();
+
+// ===== DESKTOP SCALE =====
+// The UI is laid out for a phone. On a big screen, scale it up with CSS zoom
+// (driven by --z) so it fills the window. Phones stay at 1.
+function applyScale() {
+  const z = window.innerWidth >= 900 ? Math.max(1, Math.min(1.45, window.innerHeight / 760)) : 1;
+  document.documentElement.style.setProperty('--z', z.toFixed(3));
+}
+applyScale();
+window.addEventListener('resize', applyScale);
+// Rects in the stage's own (unscaled) CSS pixels, so effects positioned with
+// style.left/top land in the right place whatever the zoom is.
+function localRect(el) {
+  const r = el.getBoundingClientRect();
+  const st = document.getElementById('stage');
+  const k = (st && st.offsetWidth) ? (st.getBoundingClientRect().width / st.offsetWidth) || 1 : 1;
+  return { left: r.left / k, top: r.top / k, width: r.width / k, height: r.height / k };
+}
+
+// ===== HOME =====
+let homeToastTimer = null;
+function showHome(toast) {
+  state = STATE.IDLE;
+  $('overlay').classList.remove('show');
+  $('picker').classList.remove('show');
+  $('titleScreen').classList.remove('show');
+  $('homeHi').textContent = `Hi, ${heroDisplayName()}`;
+  $('homeLv').textContent = `LV ${profile.level}`;
+  $('homeXp').style.width = Math.min(100, profile.xp / xpForLevel(profile.level) * 100) + '%';
+  $('hStreak').textContent = streakText();
+  $('hMeals').textContent = profile.battles;
+  $('hBeaten').textContent = totalBeaten();
+  $('homeBagBtn').textContent = `🎒 BAG ${(profile.items || []).length}/${ITEMS.length}`;
+  $('home').classList.add('show');
+  const t = $('homeToast');
+  if (homeToastTimer) clearTimeout(homeToastTimer);
+  if (toast) {
+    t.textContent = toast;
+    t.classList.add('show');
+    homeToastTimer = setTimeout(() => t.classList.remove('show'), 5000);
+  } else {
+    t.classList.remove('show');
+  }
+}
+
+// ===== MEAL PICKER =====
+function openPicker() {
+  pickFood = profile.lastFood && FOOD_BY_ID[profile.lastFood] ? profile.lastFood : null;
+  pickSize = SIZE_BY_ID[profile.lastSize] ? profile.lastSize : 'regular';
+  $('foodGrid').innerHTML = FOOD_TYPES.map(ft =>
+    `<button class="food-card" data-id="${ft.id}"><div class="slot">${foodHTML(ft, 3)}</div><span>${ft.label}</span></button>`).join('');
+  $('sizeRow').innerHTML = SIZES.map(s =>
+    `<button class="size-btn" data-id="${s.id}">${s.label}<small>${s.hint}</small></button>`).join('');
+  $('foodGrid').querySelectorAll('.food-card').forEach(b => b.addEventListener('click', () => { pickFood = b.dataset.id; haptic(6); renderPicker(); }));
+  $('sizeRow').querySelectorAll('.size-btn').forEach(b => b.addEventListener('click', () => { pickSize = b.dataset.id; haptic(6); renderPicker(); }));
+  renderPicker();
+  $('picker').classList.add('show');
+  $('picker').scrollTop = 0;
+}
+function renderPicker() {
+  $('foodGrid').querySelectorAll('.food-card').forEach(b => b.classList.toggle('sel', b.dataset.id === pickFood));
+  $('sizeRow').querySelectorAll('.size-btn').forEach(b => b.classList.toggle('sel', b.dataset.id === pickSize));
+  const ft = FOOD_BY_ID[pickFood];
+  $('fightBtn').disabled = !ft;
+  $('pickEst').innerHTML = ft
+    ? `Your ${ft.noun} ${/s$/.test(ft.noun) ? 'give' : 'gives'} you <b>${ft.power} power</b>.<br>It will attract ${/^[AEIOU]/.test(foeRank()) ? 'an' : 'a'} ${foeRank().toLowerCase()} <b>${ft.foe.name}</b>.<br>About ${foeBites(ft, pickSize)} bites, around ${mealMinsEst(foeBites(ft, pickSize))} minutes.`
+    : 'Pick what\'s on your plate.';
+}
+function startFight() {
+  const ft = FOOD_BY_ID[pickFood];
+  if (!ft) return;
+  profile.lastFood = pickFood;
+  profile.lastSize = pickSize;
+  saveProfile();
+  haptic([20, 40, 20]);
+  const bt = $('battleTransition');
+  bt.classList.remove('go');
+  void bt.offsetWidth;
+  bt.classList.add('go');
+  setTimeout(() => {
+    $('picker').classList.remove('show');
+    $('home').classList.remove('show');
+    beginMeal(ft, pickSize);
+  }, 300);
+}
+
+// ===== FIGHT TIPS =====
+function scheduleTip() {
+  clearTip();
+  tipTimer = setTimeout(() => {
+    if (state !== STATE.CHEWING) return;
+    tipIndex = (tipIndex + 1) % TIPS.length;
+    $('fightTip').innerHTML = '<b>WHILE YOU CHEW</b>' + TIPS[tipIndex];
+    $('fightTip').classList.add('show');
+  }, TIP_DELAY_MS);
+}
+function clearTip() {
+  if (tipTimer) { clearTimeout(tipTimer); tipTimer = null; }
+  $('fightTip').classList.remove('show');
+}
+
+// ===== BAG =====
+function openBag() {
+  const owned = profile.items || [];
+  $('bagTitle').textContent = `Gear ${owned.length}/${ITEMS.length}`;
+  $('bagBody').innerHTML = (owned.length ? '' : '<p>Empty for now. Beat a meal and it may drop something.</p>') +
+    ITEMS.map(it => owned.includes(it.id)
+      ? `<div class="bag-item"><span class="bag-icon">${it.icon}</span><div><div class="bag-name">${it.name}</div><div class="bag-eff">${it.effect}</div></div></div>`
+      : `<div class="bag-item locked"><span class="bag-icon">?</span><div><div class="bag-name">???</div><div class="bag-eff">Not found yet</div></div></div>`).join('');
+  $('bag').classList.add('show');
+  $('bag').scrollTop = 0;
+  $('bagClose').focus({ preventScroll: true });
+}
+function closeBag() { $('bag').classList.remove('show'); }
+
+// ===== BATTLE VFX =====
+function showDmg(targetId, amount, type, isCrit) {
+  const target = $(targetId);
+  const rect = localRect(target);
+  const stage = $('stage');
+  const stageRect = localRect(stage);
+  const el = document.createElement('div');
+  el.className = `dmg-float ${type}${isCrit ? ' crit' : ''}`;
+  el.textContent = (isCrit ? '💥-' : '-') + Math.round(amount);
+  el.style.left = (rect.left - stageRect.left + rect.width / 2 - 20) + 'px';
+  el.style.top = (rect.top - stageRect.top) + 'px';
+  stage.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+function showHeal(targetId, amount) {
+  const target = $(targetId);
+  const rect = localRect(target);
+  const stage = $('stage');
+  const stageRect = localRect(stage);
+  const el = document.createElement('div');
+  el.className = 'dmg-float heal';
+  el.textContent = '+' + Math.round(amount);
+  el.style.left = (rect.left - stageRect.left + rect.width / 2 - 15) + 'px';
+  el.style.top = (rect.top - stageRect.top) + 'px';
+  stage.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+function showPerfectBanner(text) {
+  const el = document.createElement('div');
+  el.className = 'perfect-banner';
+  el.textContent = text;
+  $('stage').appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+function showSlash(targetId) {
+  const target = $(targetId);
+  const rect = localRect(target);
+  const stage = $('stage');
+  const stageRect = localRect(stage);
+  const el = document.createElement('div');
+  el.className = 'slash';
+  el.innerHTML = '<div class="slash-line"></div><div class="slash-line"></div><div class="slash-line"></div>';
+  el.style.left = (rect.left - stageRect.left + rect.width / 2 - 20) + 'px';
+  el.style.top = (rect.top - stageRect.top + rect.height / 2 - 20) + 'px';
+  stage.appendChild(el);
+  setTimeout(() => el.remove(), 500);
+}
+function spawnFoodBurst(targetId, count) {
+  const target = $(targetId);
+  const rect = localRect(target);
+  const stage = $('stage');
+  const stageRect = localRect(stage);
+  const cx = rect.left - stageRect.left + rect.width / 2;
+  const cy = rect.top - stageRect.top + rect.height * 0.45;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'food-particle';
+    el.textContent = FOODS[Math.floor(Math.random() * FOODS.length)];
+    const angle = (-30 - Math.random() * 120) * Math.PI / 180; // mostly upward arc
+    const force = 30 + Math.random() * 55;
+    const vx = Math.cos(angle) * force * (Math.random() < 0.5 ? 1 : -1);
+    const vy = Math.sin(angle) * force;
+    const spin = (Math.random() - 0.5) * 540;
+    const dur = 0.75 + Math.random() * 0.5;
+    el.style.left = cx + 'px';
+    el.style.top = cy + 'px';
+    el.style.setProperty('--vx', vx + 'px');
+    el.style.setProperty('--vy', vy + 'px');
+    el.style.setProperty('--spin', spin + 'deg');
+    el.style.setProperty('--dur', dur + 's');
+    el.style.animationDelay = (Math.random() * 0.06) + 's';
+    stage.appendChild(el);
+    setTimeout(() => el.remove(), dur * 1000 + 200);
+  }
+}
+let chompInterval = null;
+function startChompParticles() {
+  if (chompInterval) return;
+  chompInterval = setInterval(() => {
+    if (state !== STATE.CHEWING) { stopChompParticles(); return; }
+    const wrap = $('playerWrap');
+    const rect = localRect(wrap);
+    const stage = $('stage');
+    const stageRect = localRect(stage);
+    const el = document.createElement('div');
+    el.className = 'chomp-particle';
+    el.textContent = FOODS[Math.floor(Math.random() * FOODS.length)];
+    const dx = (Math.random() - 0.5) * 34;
+    const dy = -10 - Math.random() * 18;
+    el.style.setProperty('--dx', dx + 'px');
+    el.style.setProperty('--dy', dy + 'px');
+    el.style.setProperty('--dx2', dx * 2.2 + 'px');
+    el.style.setProperty('--dy2', dy * 1.4 + 'px');
+    const rot = (Math.random() - 0.5) * 160;
+    el.style.setProperty('--rot', rot + 'deg');
+    el.style.setProperty('--rot2', rot * 2 + 'deg');
+    el.style.left = (rect.left - stageRect.left + rect.width / 2 - 6) + 'px';
+    el.style.top = (rect.top - stageRect.top + 30) + 'px'; // mouth height
+    stage.appendChild(el);
+    setTimeout(() => el.remove(), 1700);
+  }, 650);
+}
+function stopChompParticles() { if (chompInterval) { clearInterval(chompInterval); chompInterval = null; } }
+
+function flashArena(color) {
+  const f = $('arenaFlash');
+  f.style.background = color || 'rgba(255,255,255,0.1)';
+  f.style.opacity = 1;
+  setTimeout(() => { f.style.transition = 'opacity 0.25s'; f.style.opacity = 0; }, 50);
+  setTimeout(() => { f.style.transition = ''; }, 300);
+}
+function triggerAnim(id, cls, dur) {
+  const el = $(id);
+  el.classList.remove('idle', 'attacking', 'hit', 'chewing', 'entering');
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(() => {
+    el.classList.remove(cls);
+    if (playerHp > 0 && !(id === 'bossWrap' && bossHp <= 0)) el.classList.add('idle');
+  }, dur);
+}
+function updateComboUI(bump) {
+  const tag = $('comboTag');
+  if (combo >= 2) {
+    tag.textContent = `🔥 COMBO ×${combo}`;
+    tag.classList.add('active');
+    if (bump) { tag.classList.remove('bump'); void tag.offsetWidth; tag.classList.add('bump'); }
+  } else {
+    tag.classList.remove('active');
+  }
+}
+
+// Your meal's power flies from the knight to the Gobblin on every attack.
+function firePower() {
+  const stage = $('stage'), sr = localRect(stage);
+  const p = localRect($('playerWrap')), b = localRect($('bossWrap'));
+  const el = document.createElement('div');
+  el.className = 'power-shot';
+  el.innerHTML = foodHTML(foe.ft, 2);
+  el.style.left = (p.left - sr.left + p.width / 2) + 'px';
+  el.style.top = (p.top - sr.top + 20) + 'px';
+  el.style.setProperty('--dx', (b.left - p.left) + 'px');
+  stage.appendChild(el);
+  setTimeout(() => el.remove(), 500);
+}
+
+// ===== FOE DEFEATED =====
+function onFoeDefeated() {
+  foeDown = true;
+  biteOfKill = bites.length;
+  $('battleLog').textContent = `The ${foe.name} flees! Rushing has no power over you.`.replace('The The', 'The');
+  spawnFoodBurst('bossWrap', 16 + Math.floor(Math.random() * 6));
+  setTimeout(() => spawnFoodBurst('bossWrap', 10), 200);
+  $('bossWrap').classList.add('dead');
+  haptic([40, 30, 40, 30, 60]);
+  setTimeout(() => {
+    showPerfectBanner('VICTORY!');
+    $('battleLog').textContent = 'Victory! Finish your plate at the same pace, then tap Done eating.';
+    animating = false;
+    render();
+  }, 1200);
+}
+
+// ===== BATTLE SEQUENCE =====
+function runBattleSequence(pDmg, bDmg, isCrit, isPerfect) {
+  animating = true;
+  triggerAnim('playerWrap', 'attacking', 600);
+  const attackMsgs = isPerfect
+    ? [`PERFECT ${foe.ft.attack.toUpperCase()}!`, `FULL ${foe.ft.power.toUpperCase()} POWER!`, 'THE 25-SECOND TECHNIQUE!']
+    : isCrit
+    ? [`CRITICAL ${foe.ft.attack.toUpperCase()}!`, 'SUPER EFFECTIVE!', `${foe.ft.power.toUpperCase()} OVERLOAD!`]
+    : [`${foe.ft.attack}!`, `${foe.ft.power} power, unleashed!`, `${foe.ft.attack}! Well chewed, well fired.`];
+  $('battleLog').textContent = attackMsgs[Math.floor(Math.random() * attackMsgs.length)];
+  if (isPerfect) showPerfectBanner('PERFECT!');
+  else if (isCrit) showPerfectBanner('CRIT!');
+
+  firePower();
+  setTimeout(() => {
+    showSlash('bossWrap');
+    spawnFoodBurst('bossWrap', (isCrit || isPerfect ? 12 : 7) + Math.floor(Math.random() * 4));
+    flashArena(isCrit || isPerfect ? 'rgba(240, 208, 96, 0.18)' : 'rgba(107, 255, 155, 0.12)');
+    haptic(isCrit || isPerfect ? [30, 30, 50] : 25);
+    setTimeout(() => {
+      bossHp = Math.max(0, bossHp - pDmg);
+      showDmg('bossWrap', pDmg, 'to-boss', isCrit || isPerfect);
+      triggerAnim('bossWrap', 'hit', 400);
+      updateBars();
+    }, 80);
+  }, 250);
+
+  setTimeout(() => {
+    if (bossHp <= 0) { onFoeDefeated(); return; }
+
+    triggerAnim('bossWrap', 'attacking', 600);
+    const n = foe.name;
+    const bossMsgs = [`${n} shouts "SWALLOW FASTER!"`, `${n} jabs you with a fork!`, `${n} casts Hurry!`, `${n} taps its watch at you!`, `${n} tries to rush you!`];
+    $('battleLog').textContent = bossMsgs[Math.floor(Math.random() * bossMsgs.length)];
+
+    setTimeout(() => {
+      showSlash('playerWrap');
+      spawnFoodBurst('playerWrap', 4 + Math.floor(Math.random() * 3));
+      flashArena('rgba(255, 107, 107, 0.12)');
+      haptic([15, 40, 15]);
+      setTimeout(() => {
+        playerHp = Math.max(0, playerHp - bDmg);
+        showDmg('playerWrap', bDmg, 'to-player', false);
+        triggerAnim('playerWrap', 'hit', 400);
+        updateBars();
+        $('battleLog').textContent = `${Math.round(pDmg)} served, ${Math.round(bDmg)} taken`;
+        setTimeout(() => {
+          if (playerHp <= 0) knockDown();
+          else { animating = false; render(); }
+        }, 300);
+      }, 80);
+    }, 250);
+  }, 900);
+}
+
+// You're still eating, so losing can't end the meal. You get knocked down,
+// lose your combo, and get back up.
+function knockDown() {
+  knockdowns += 1;
+  combo = 0;
+  updateComboUI(false);
+  $('playerWrap').classList.add('dead');
+  $('battleLog').textContent = 'Knocked down! Rushed bites hit back hard. Slow down to recover.';
+  haptic([60, 40, 60]);
+  setTimeout(() => {
+    $('playerWrap').classList.remove('dead');
+    playerHp = Math.round(playerMaxHp() * KNOCKDOWN_RECOVER);
+    showHeal('playerWrap', playerHp);
+    updateBars();
+    $('battleLog').textContent = 'You get back up. Deep breath. Next bite, chew it right.';
+    animating = false;
+    render();
+  }, 1600);
+}
+
+function updateBars() {
+  saveMeal();
+  $('playerHpBar').style.width = Math.max(0, playerHp / playerMaxHp() * 100) + '%';
+  $('bossHpBar').style.width = Math.max(0, bossHp / foe.maxHp * 100) + '%';
+  $('playerHpText').textContent = Math.max(0, Math.round(playerHp));
+  $('bossHpText').textContent = Math.max(0, Math.round(bossHp));
+}
+
+function render() {
+  const prompt = $('prompt');
+  const swBtn = $('swallowBtn');
+  const chewSection = $('chewSection');
+
+  if (state === STATE.READY) {
+    $('mainBtn').style.display = '';
+    swBtn.style.display = 'none'; chewSection.classList.remove('active');
+    if (foeDown) {
+      prompt.textContent = 'Foe beaten. Keep eating slowly, or tap Done eating.';
+    } else if (bites.length === 0) {
+      prompt.textContent = 'Take a real bite of food, then tap the button';
+    } else if (bites.length >= foe.bites) {
+      // Never nudge anyone to eat past their plate just to win.
+      prompt.textContent = 'Plate empty? Tap Done eating. Never eat extra to win.';
+    } else {
+      prompt.textContent = `Bite ${bites.length + 1} of about ${foe.bites}. Next one whenever you're ready.`;
+    }
+    $('finishBtn').disabled = bites.length === 0;
+    $('playerWrap').classList.remove('chewing', 'supercharged');
+    stopChompParticles();
+  } else if (state === STATE.CHEWING) {
+    $('mainBtn').style.display = 'none';
+    swBtn.style.display = ''; chewSection.classList.add('active');
+    prompt.textContent = 'Fork down. Chew slowly. Tap when you swallow.';
+    $('finishBtn').disabled = true;
+    $('playerWrap').classList.remove('idle');
+    $('playerWrap').classList.add('chewing');
+    startChompParticles();
+  }
+  updateBars();
+  updateComboUI(false);
+  saveMeal();
+}
+
+function tick() {
+  const now = Date.now();
+  if (mealStart) $('mealTimer').textContent = formatTime(now - mealStart);
+  if (state === STATE.CHEWING && currentBiteAt) {
+    const elapsed = now - currentBiteAt;
+    $('chewTime').textContent = formatSeconds(elapsed);
+    $('chewBarFill').style.width = Math.min(100, (elapsed / 1000 / CHARGE_FULL_SEC) * 100) + '%';
+    const isPerfectReady = elapsed / 1000 >= PERFECT_SEC;
+    const isComboReady = elapsed / 1000 >= COMBO_MIN_SEC;
+    $('chewLabel').textContent = isPerfectReady ? 'Perfect ready!' : isComboReady ? 'Combo ready' : 'Chewing';
+    $('chewLabel').classList.toggle('perfect-ready', isPerfectReady);
+    $('legendCombo').classList.toggle('hit', isComboReady);
+    $('legendPerfect').classList.toggle('hit', isPerfectReady);
+    $('playerWrap').classList.toggle('supercharged', isPerfectReady);
+    if (!foeDown && isComboReady && !cuedCombo) { cuedCombo = true; haptic(40); chime([660, 880]); }
+    if (!foeDown && isPerfectReady && !cuedPerfect) { cuedPerfect = true; haptic([40, 60, 40]); chime([660, 880, 1320]); }
+  }
+}
+
+// ===== MEAL IN PROGRESS =====
+// Phones often reload a tab after you switch apps. Keep the running meal in
+// storage so a reload drops you straight back into the same fight.
+const MEAL_KEY = 'eatSlow_meal';
+const RESUME_WINDOW_MS = 4 * 3600000;
+function saveMeal() {
+  if (!foe || (state !== STATE.READY && state !== STATE.CHEWING)) return;
+  try {
+    localStorage.setItem(MEAL_KEY, JSON.stringify({
+      ft: foe.ft.id, size: foe.size, maxHp: foe.maxHp, bossHp, playerHp, mealStart, bites,
+      combo, bestCombo, foeDown, biteOfKill, knockdowns, mealDmgDealt, mealSwallows,
+      firstStrikeCrit, lastSwallowAt, currentBiteAt: state === STATE.CHEWING ? currentBiteAt : null,
+    }));
+  } catch {}
+}
+function clearSavedMeal() { try { localStorage.removeItem(MEAL_KEY); } catch {} }
+function resumeMeal() {
+  let m = null;
+  try { m = JSON.parse(localStorage.getItem(MEAL_KEY) || 'null'); } catch {}
+  if (!m) return false;
+  if (!FOOD_BY_ID[m.ft] || !SIZE_BY_ID[m.size] || Date.now() - m.mealStart > RESUME_WINDOW_MS) { clearSavedMeal(); return false; }
+  beginMeal(FOOD_BY_ID[m.ft], m.size);
+  foe.maxHp = m.maxHp;
+  bossHp = m.bossHp;
+  playerHp = m.playerHp > 0 ? m.playerHp : Math.round(playerMaxHp() * KNOCKDOWN_RECOVER);
+  mealStart = m.mealStart;
+  bites = m.bites || [];
+  combo = m.combo || 0;
+  bestCombo = m.bestCombo || 0;
+  foeDown = !!m.foeDown;
+  biteOfKill = m.biteOfKill || 0;
+  knockdowns = m.knockdowns || 0;
+  mealDmgDealt = m.mealDmgDealt || 0;
+  mealSwallows = m.mealSwallows || 0;
+  firstStrikeCrit = !!m.firstStrikeCrit;
+  lastSwallowAt = m.lastSwallowAt || null;
+  if (bossHp <= 0 && !foeDown) { foeDown = true; biteOfKill = bites.length; }   // reloaded mid killing blow
+  if (foeDown) $('bossWrap').classList.add('dead');
+  if (m.currentBiteAt) {
+    state = STATE.CHEWING;
+    currentBiteAt = m.currentBiteAt;
+    cuedCombo = cuedPerfect = true;   // don't chime for thresholds passed while away
+    scheduleTip();
+  }
+  $('battleLog').textContent = 'Welcome back. Your meal is right where you left it.';
+  render();
+  return true;
+}
+
+// ===== CUES =====
+// You're meant to glance at the screen, not watch it, so the game tells you
+// when a combo (12s) or a perfect strike (25s) is ready: a buzz and a chime.
+let audioCtx = null;
+let cuedCombo = false, cuedPerfect = false;
+function soundOn() { return profile.sound !== false; }
+function unlockAudio() {   // must run inside a tap for iOS to allow audio
+  if (!soundOn()) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch {}
+}
+function chime(freqs) {
+  if (!soundOn() || !audioCtx) return;
+  try {
+    const t0 = audioCtx.currentTime;
+    freqs.forEach((f, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = t0 + i * 0.09;
+      o.type = 'square';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.05, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(t);
+      o.stop(t + 0.15);
+    });
+  } catch {}
+}
+function renderSoundBtn() {
+  $('soundBtn').textContent = soundOn() ? '🔊' : '🔇';
+  $('soundBtn').setAttribute('aria-label', soundOn() ? 'Mute sounds' : 'Turn sounds on');
+}
+$('soundBtn').addEventListener('click', () => {
+  profile.sound = !soundOn();
+  saveProfile();
+  if (soundOn()) { unlockAudio(); chime([660, 880]); }
+  renderSoundBtn();
+});
+
+// ===== MEAL FLOW =====
+function beginMeal(ft, sizeId) {
+  const nb = foeBites(ft, sizeId);
+  foe = { ft, size: sizeId, bites: nb, name: ft.foe.name, maxHp: foeMaxHp(nb) };
+  const now = Date.now();
+  state = STATE.READY;
+  mealStart = now;
+  bites = [];
+  lastSwallowAt = null;
+  currentBiteAt = null;
+  combo = hasItem('pepper') ? 1 : 0;
+  bestCombo = combo;
+  foeDown = false;
+  biteOfKill = 0;
+  knockdowns = 0;
+  mealXp = 0;
+  mealLeveledUp = false;
+  mealDmgDealt = 0;
+  mealSwallows = 0;
+  mealLoot = null;
+  animating = false;
+  firstStrikeCrit = hasItem('crumb');
+  playerHp = playerMaxHp();
+  bossHp = foe.maxHp;
+
+  $('bossSprite').innerHTML = foeHTML(ft, 6);
+  $('powerOrb').innerHTML = foodHTML(ft, 2);
+  $('bossHpLabel').textContent = ft.foe.name;
+  $('bossPlateSub').textContent = ft.foe.sub;
+  $('playerHpNameLabel').textContent = heroDisplayName();
+  renderSoundBtn();
+  $('levelTag').textContent = `LV ${profile.level}`;
+  $('xpFill').style.width = Math.min(100, profile.xp / xpForLevel(profile.level) * 100) + '%';
+  $('regionBanner').innerHTML = `${SIZE_BY_ID[sizeId].label} ${ft.noun} · <strong>${ft.power} power</strong><br>${foeRank()} foe · ~${nb} bites · ~${mealMinsEst(nb)} min`;
+  $('mealTimer').textContent = '00:00';
+  $('overlay').classList.remove('show');
+  $('playerWrap').classList.remove('dead');
+  $('bossWrap').classList.remove('dead');
+  $('playerWrap').classList.add('idle');
+  triggerAnim('bossWrap', 'entering', 800);
+  clearTip();
+  if (tickInterval) clearInterval(tickInterval);
+  tickInterval = setInterval(tick, TICK_MS);
+  requestWakeLock();
+
+  let intro = ft.foe.intro;
+  if (combo) intro += ' (Pepper Charm: combo ready!)';
+  $('battleLog').textContent = intro;
+  render();
+}
+
+function handleMainBtn() {
+  if (animating || state !== STATE.READY) return;
+  haptic(8);
+  unlockAudio();
+  cuedCombo = false;
+  cuedPerfect = false;
+  state = STATE.CHEWING;
+  currentBiteAt = Date.now();
+  $('chewTime').textContent = '0.0s';
+  $('chewBarFill').style.width = '0%';
+  $('legendCombo').classList.remove('hit');
+  $('legendPerfect').classList.remove('hit');
+  $('battleLog').textContent = foeDown ? 'Savoring the victory...' : `Chewing... ${foe.ft.power} power is charging.`;
+  scheduleTip();
+  render();
+}
+
+function handleSwallow() {
+  if (state !== STATE.CHEWING || animating) return;
+  const now = Date.now();
+  const chewMs = now - currentBiteAt;
+  const chewSec = chewMs / 1000;
+  bites.push({ biteAt: currentBiteAt, swallowAt: now, chewMs });
+  lastSwallowAt = now;
+  currentBiteAt = null;
+  clearTip();
+  state = STATE.READY;
+
+  if (chewSec >= COMBO_MIN_SEC) {
+    combo = Math.min(COMBO_MAX, combo + 1);
+    if (combo > bestCombo) bestCombo = combo;
+    if (hasItem('ladle') && playerHp < playerMaxHp()) {
+      const heal = Math.min(8, playerMaxHp() - playerHp);
+      playerHp += heal;
+      showHeal('playerWrap', heal);
+    }
+  } else {
+    if (combo >= 2) $('battleLog').textContent = 'Combo broken! Too hasty!';
+    combo = 0;
+  }
+  updateComboUI(true);
+
+  // After the foe falls, bites still count for the meal log, just no fight.
+  if (foeDown) {
+    $('battleLog').textContent = chewSec >= COMBO_MIN_SEC ? 'A well-chewed bite. The knight approves.' : 'Easy there. No foe, but still no rush.';
+    render();
+    return;
+  }
+
+  const isPerfect = chewSec >= PERFECT_SEC;
+  const usedCrumb = firstStrikeCrit;
+  firstStrikeCrit = false;
+  const critChance = CRIT_CHANCE + (hasItem('cape') ? 0.05 : 0);
+  const isCrit = isPerfect || usedCrumb || Math.random() < critChance;
+  let pDmg = playerDamage(chewMs);
+  if (isCrit) pDmg *= CRIT_MULT;
+  const bDmg = bossDamage(chewMs);
+  mealDmgDealt += pDmg;
+  mealSwallows += 1;
+  render();
+  runBattleSequence(pDmg, bDmg, isCrit, isPerfect);
+}
+
+function rollLoot() {
+  const missing = ITEMS.filter(it => !hasItem(it.id));
+  if (!missing.length || Math.random() > LOOT_CHANCE) return null;
+  const it = missing[Math.floor(Math.random() * missing.length)];
+  profile.items = (profile.items || []).concat(it.id);
+  return it;
+}
+
+function finishMeal() {
+  if (!bites.length) return;
+  clearSavedMeal();
+  if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+  releaseWakeLock();
+  clearTip();
+  state = STATE.FINISHED;
+
+  const won = foeDown;
+  const avg = avgChewMs();
+  const fullBonus = !won && stoppedWhenFull(avg) ? 15 : 0;
+  addXp(bites.length + bestCombo * 3 + (won ? 20 + foe.bites : fullBonus));   // meals got ~1.7x more bites; keeps XP per meal about the same
+  if (won) {
+    profile.beaten = profile.beaten || {};
+    profile.beaten[foe.ft.id] = (profile.beaten[foe.ft.id] || 0) + 1;
+    mealLoot = rollLoot();
+  }
+  profile.battles += 1;
+  updateStreak();
+  if (avg > profile.bestChew) profile.bestChew = avg;
+  logMeal(avg, won);
+  saveProfile();
+  showResults(won);
+}
+
+function showResults(won) {
+  const duration = Date.now() - mealStart;
+  const avg = avgChewMs();
+  const r = rating(avg);
+
+  const stoppedFull = !won && stoppedWhenFull(avg);
+  $('resEmoji').textContent = won ? '🏆' : stoppedFull ? '🌿' : '💨';
+  $('resTitle').textContent = won ? 'Victory' : stoppedFull ? 'Stopped when full' : 'It got away';
+  $('resRating').textContent = r.name;
+  $('resDesc').textContent = r.desc;
+
+  const bl = $('bossStatusLine');
+  const kd = knockdowns ? ` You were knocked down ${knockdowns}×.` : '';
+  if (won) {
+    bl.className = 'boss-status-line slain';
+    bl.textContent = `${foe.name} defeated on bite ${biteOfKill}.${kd}`;
+  } else if (stoppedFull) {
+    bl.className = 'boss-status-line slain';
+    bl.textContent = `You stopped at bite ${bites.length} of about ${foe.bites}, chewing slowly the whole way. Listening to your body beats any Gobblin.${kd}`;
+  } else {
+    bl.className = 'boss-status-line';
+    const pct = Math.max(1, Math.round(bossHp / foe.maxHp * 100));
+    bl.textContent = `${foe.name} got away with ${pct}% HP. Your plate emptied before your ${foe.ft.power} power could finish it. Chew each bite a little longer next time.${kd}`;
+  }
+
+  // battles was already counted for this meal, so compare against the one before
+  const newRank = foeRank();
+  if (foeRank(foeStrength(profile.battles - 1)) !== newRank) bl.textContent += ` Word has spread: Gobblins are now ${newRank}.`;
+
+  $('xpGain').textContent = `+${mealXp} XP`;
+  $('levelupFlash').style.display = mealLeveledUp ? 'block' : 'none';
+  $('resLoot').style.display = mealLoot ? '' : 'none';
+  if (mealLoot) $('resLoot').innerHTML = `<span class="loot-icon">${mealLoot.icon}</span><div><b>LOOT: ${mealLoot.name.toUpperCase()}</b>${mealLoot.effect}</div>`;
+
+  const tip = avg && avg / 1000 < COMBO_MIN_SEC
+    ? 'Your bites were quick. Next time, try setting your fork down until you swallow.'
+    : TIPS[Math.floor(Math.random() * TIPS.length)];
+  $('resTip').innerHTML = '<b>FOR YOUR NEXT MEAL</b>' + tip;
+
+  $('resDuration').textContent = formatTime(duration);
+  $('resBites').textContent = bites.length;
+  $('resChew').textContent = avg ? formatSeconds(avg) : '—';
+  $('resCombo').textContent = bestCombo >= 2 ? `🔥×${bestCombo}` : '—';
+
+  $('statLevel').textContent = `LV ${profile.level}`;
+  $('statStreak').textContent = streakText();
+  $('statSlain').textContent = totalBeaten();
+  $('statBattles').textContent = profile.battles;
+  $('statBestChew').textContent = profile.bestChew ? formatSeconds(profile.bestChew) : '—';
+
+  $('overlay').classList.add('show');
+}
+
+function leaveMeal() {
+  clearSavedMeal();
+  if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+  releaseWakeLock();
+  clearTip();
+  stopChompParticles();
+  state = STATE.IDLE;
+  mealStart = null;
+  bites = [];
+  currentBiteAt = null;
+  animating = false;
+  $('playerWrap').classList.remove('dead', 'chewing', 'supercharged');
+  $('bossWrap').classList.remove('dead');
+  showHome();
+}
+
+$('closeBtn').addEventListener('click', () => {
+  $('playerWrap').classList.remove('dead');
+  $('bossWrap').classList.remove('dead');
+  showHome(foeDown ? `${foe.name} is beaten. Another Gobblin will turn up next meal.` : null);
+});
+
+// ===== MEAL LOG =====
+// One small record per finished meal, so players can see whether they're
+// actually slowing down in real life — the point of the whole game.
+const MEAL_LOG_MAX = 60;
+const GOOD_MEAL_MIN = 20;
+// Chewed slowly but stopped early: they got full, which is the whole point.
+function stoppedWhenFull(avgMs) { return avgMs / 1000 >= COMBO_MIN_SEC && bites.length >= foe.bites * 0.4 && bites.length < foe.bites * 0.8; }
+function logMeal(avgMs, won) {
+  if (!profile.meals) profile.meals = [];
+  profile.meals.push({ t: mealStart, dur: Date.now() - mealStart, bites: bites.length, avg: Math.round(avgMs), won: !!won, full: !won && stoppedWhenFull(avgMs), food: foe.ft.id, size: foe.size });
+  if (profile.meals.length > MEAL_LOG_MAX) profile.meals.splice(0, profile.meals.length - MEAL_LOG_MAX);
+}
+function mealDate(t) {
+  const d = new Date(t);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
+         d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+function mealMins(ms) { return ms < 60000 ? '<1 min' : Math.round(ms / 60000) + ' min'; }
+function mealLost(m) { return !m.full && (m.won === false || !!m.died); }
+function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+
+function logHeadline(meals) {
+  const n = meals.length;
+  if (n === 0) return { title: 'No meals yet', body: 'Finish a meal with <b>Done eating</b> and it will show up here, so you can see whether your bites are getting slower.' };
+  const all = mean(meals.map(m => m.avg)) / 1000;
+  const long = meals.filter(m => m.dur >= GOOD_MEAL_MIN * 60000).length;
+  const longLine = `<p>${long} of ${n} meal${n === 1 ? '' : 's'} lasted ${GOOD_MEAL_MIN}+ minutes.</p>`;
+  if (n < 4) return { title: `${n} meal${n === 1 ? '' : 's'} logged`,
+    body: `<p>Average chew so far: <b>${all.toFixed(1)}s</b> per bite. A few more meals and you'll see a trend.</p>` + longLine };
+  const k = Math.min(5, Math.floor(n / 2));
+  const first = mean(meals.slice(0, k).map(m => m.avg)) / 1000;
+  const last = mean(meals.slice(-k).map(m => m.avg)) / 1000;
+  const diff = last - first;
+  let title, line;
+  if (diff >= 1) { title = 'You are slowing down'; line = `Your last ${k} meals averaged <b>${last.toFixed(1)}s</b> per bite, up from <b>${first.toFixed(1)}s</b> in your first ${k}.`; }
+  else if (diff <= -1) { title = 'A little quicker lately'; line = `Your last ${k} meals averaged <b>${last.toFixed(1)}s</b> per bite, down from <b>${first.toFixed(1)}s</b>. No stress. Try one bite at a time with the fork down.`; }
+  else { title = 'Holding steady'; line = `You're averaging about <b>${last.toFixed(1)}s</b> per bite, much like when you started.${last < COMBO_MIN_SEC ? ` Aim for ${COMBO_MIN_SEC}s to build combos.` : ''}`; }
+  return { title, body: `<p>${line}</p>` + longLine };
+}
+
+function barChart(hostId, meals, value, refVal, refLabel, fmt) {
+  const W = 320, H = 110, pad = { t: 8, b: 4, l: 0, r: 0 };
+  const maxV = Math.max(refVal * 1.25, ...meals.map(value));
+  const slot = (W - pad.l - pad.r) / Math.max(meals.length, 10);
+  const bw = Math.max(3, slot - 2);           // 2px gap between bars
+  const Y = v => H - pad.b - v / maxV * (H - pad.t - pad.b);
+  let bars = '';
+  meals.forEach((m, i) => {
+    const x = pad.l + i * slot;
+    const y = Y(value(m));
+    const h = Math.max(2, H - pad.b - y);
+    bars += `<rect class="bar${mealLost(m) ? ' died' : ''}" data-i="${i}" x="${x.toFixed(1)}" y="${(H - pad.b - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5"><title>${mealDate(m.t)}: ${fmt(m)}</title></rect>`;
+  });
+  const ry = Y(refVal);
+  $(hostId).innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bar chart, one bar per meal">
+    <line x1="0" x2="${W}" y1="${H - pad.b}" y2="${H - pad.b}" stroke="rgba(255,255,255,0.12)"/>
+    ${bars}
+    <line x1="0" x2="${W}" y1="${ry}" y2="${ry}" stroke="rgba(240,208,96,0.5)" stroke-dasharray="3 4"/>
+  </svg>`;
+}
+
+function renderLog() {
+  const all = profile.meals || [];
+  const meals = all.slice(-20);
+  const h = logHeadline(all);
+  $('logTitle').textContent = h.title;
+  $('logSummary').innerHTML = h.body;
+  $('logCharts').style.display = all.length ? '' : 'none';
+  if (!all.length) return;
+  const fmt = m => `${FOOD_BY_ID[m.food] ? FOOD_BY_ID[m.food].noun + ' · ' : ''}${formatSeconds(m.avg)} avg chew · ${mealMins(m.dur)} · ${m.bites} bites${m.full ? ' · stopped when full' : mealLost(m) ? ' · got away' : ''}`;
+  barChart('chewChart', meals, m => m.avg / 1000, COMBO_MIN_SEC, `${COMBO_MIN_SEC}s combo`, fmt);
+  barChart('lenChart', meals, m => m.dur / 60000, GOOD_MEAL_MIN, `${GOOD_MEAL_MIN} min`, fmt);
+  $('logReadout').textContent = meals.length > 1 ? `Last ${meals.length} meals, oldest on the left. Tap a bar for details.` : 'Tap the bar for details.';
+  const pick = (i) => {
+    document.querySelectorAll('#log rect.bar').forEach(r => r.classList.toggle('sel', +r.dataset.i === i));
+    $('logReadout').textContent = mealDate(meals[i].t) + ' — ' + fmt(meals[i]);
+  };
+  document.querySelectorAll('#log rect.bar').forEach(r => {
+    r.addEventListener('pointerenter', () => pick(+r.dataset.i));
+    r.addEventListener('click', () => pick(+r.dataset.i));
+  });
+  const beaten = FOOD_TYPES.filter(ft => (profile.beaten || {})[ft.id]);
+  $('shelfWrap').style.display = beaten.length ? '' : 'none';
+  $('shelf').innerHTML = beaten.map(ft => `<div class="shelf-item" title="${ft.foe.name}">${foeHTML(ft, 2)}×${profile.beaten[ft.id]}</div>`).join('');
+  $('logList').innerHTML = all.slice(-8).reverse().map(m =>
+    `<div class="log-row"><span>${mealDate(m.t)}${FOOD_BY_ID[m.food] ? ' · ' + FOOD_BY_ID[m.food].noun : ''}</span><span>${formatSeconds(m.avg)} · ${mealMins(m.dur)}</span></div>`).join('');
+}
+function openLog() {
+  renderLog();
+  $('log').classList.add('show');
+  $('log').scrollTop = 0;
+  $('logClose').focus({ preventScroll: true });   // Close sits at the bottom; don't jump there
+}
+function closeLog() { $('log').classList.remove('show'); }
+
+// ===== HOW TO PLAY =====
+const HELP_PAGES = [
+  { title: 'Play this while you eat',
+    body: `<p>Eat Slow Quest is a companion for a real meal. Sit down with your food first, then start.</p>
+           <p>You don't need to watch the screen. It chimes and buzzes when your chew is ready, so you can look at your food instead.</p>` },
+  { title: 'Your meal is your power',
+    body: `<p>Tap <span class="k gold">I'm about to eat</span> and pick what's on your plate. Pizza gives you Ember power, soup gives you Steam, and so on.</p>
+           <p>Every meal also attracts a Gobblin: a little monster that feeds on rushed meals and wants you to hurry.</p>` },
+  { title: 'Bite, chew, swallow',
+    body: `<p>Take a real bite and tap <span class="k">I took a bite</span>. Put your fork down.</p>
+           <p>Chew. When you actually swallow, tap <span class="k gold">I swallowed</span>. Your hero attacks.</p>` },
+  { title: 'Longer chew, bigger hit',
+    body: `<p><b>12s+</b> builds a combo. <b>25s+</b> is a perfect strike. Rushed bites get hit back hard.</p>
+           <p>Its HP is sized to your plate. Gobblins start as rookies: chew each bite <b>12s+</b> and you'll win. They get tougher the more meals you play, until you need about <b>20 seconds</b> a bite. Rush, and it gets away.</p>
+           <p>Full before your plate is empty? Stop and tap <b>Done eating</b>. That counts as a win too.</p>` },
+  { title: 'Level up, find gear',
+    body: `<p>Tap <b>Done eating</b> when you're finished. You earn XP, and victories can drop gear for your bag.</p>
+           <p><b>My meals</b> shows whether your real bites are getting slower over time.</p>` },
+];
+let helpPage = 0;
+function renderHelp() {
+  const p = HELP_PAGES[helpPage];
+  $('helpKicker').textContent = `HOW TO PLAY · ${helpPage + 1}/${HELP_PAGES.length}`;
+  $('helpTitle').textContent = p.title;
+  $('helpBody').innerHTML = p.body;
+  $('helpDots').innerHTML = HELP_PAGES.map((_, i) => `<i class="${i === helpPage ? 'on' : ''}"></i>`).join('');
+  $('helpBack').style.visibility = helpPage === 0 ? 'hidden' : 'visible';
+  $('helpNext').textContent = helpPage === HELP_PAGES.length - 1 ? 'Got it' : 'Next';
+}
+function openHelp() {
+  helpPage = 0;
+  renderHelp();
+  $('help').classList.add('show');
+  $('helpNext').focus({ preventScroll: true });
+}
+function closeHelp() {
+  $('help').classList.remove('show');
+  if (!profile.seenHelp2) { profile.seenHelp2 = true; saveProfile(); }
+}
+$('helpNext').addEventListener('click', () => {
+  if (helpPage < HELP_PAGES.length - 1) { helpPage++; renderHelp(); } else closeHelp();
+});
+$('helpBack').addEventListener('click', () => { if (helpPage > 0) { helpPage--; renderHelp(); } });
+$('help').addEventListener('click', (e) => { if (e.target === $('help')) closeHelp(); });
+
+// ===== TITLE (first run only) =====
+function hasSave() { return profile.battles > 0 || !!profile.heroName; }
+$('beginBtn').addEventListener('click', () => {
+  profile.heroName = $('nameInput').value.trim().slice(0, 12) || 'Wanderer';
+  saveProfile();
+  showHome();
+  if (!profile.seenHelp2) openHelp();
+});
+$('nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('beginBtn').click(); });
+function startOver() {
+  if (!confirm('Start over with a new hero? Level, gear and meal log will be erased. (Copy a save code first if you want a backup.)')) return;
+  const seen = profile.seenHelp2;
+  profile = defaultProfile();
+  profile.seenHelp2 = seen;
+  saveProfile();
+  closeLog();
+  $('home').classList.remove('show');
+  $('nameInput').value = '';
+  $('titleScreen').classList.add('show');
+  $('nameInput').focus();
+}
+
+// ===== WIRE UP =====
+$('mainBtn').addEventListener('click', handleMainBtn);
+$('swallowBtn').addEventListener('click', handleSwallow);
+$('finishBtn').addEventListener('click', finishMeal);
+$('resetBtn').addEventListener('click', () => {
+  if (bites.length && !confirm('Leave without saving this meal? Tap "Done eating" instead to keep your XP.')) return;
+  leaveMeal();
+});
+$('eatBtn').addEventListener('click', openPicker);
+$('pickBack').addEventListener('click', () => $('picker').classList.remove('show'));
+$('fightBtn').addEventListener('click', startFight);
+$('homeHelpBtn').addEventListener('click', openHelp);
+$('titleHelpBtn').addEventListener('click', openHelp);
+$('battleHelpBtn').addEventListener('click', openHelp);
+$('homeLogBtn').addEventListener('click', openLog);
+$('resLogBtn').addEventListener('click', openLog);
+$('logClose').addEventListener('click', closeLog);
+$('log').addEventListener('click', (e) => { if (e.target === $('log')) closeLog(); });
+$('homeBagBtn').addEventListener('click', openBag);
+$('bagClose').addEventListener('click', closeBag);
+$('bag').addEventListener('click', (e) => { if (e.target === $('bag')) closeBag(); });
+$('saveExport').addEventListener('click', exportSaveCode);
+$('saveImport').addEventListener('click', importSaveCode);
+$('startOver').addEventListener('click', startOver);
+
+const anyModalOpen = () => ['help', 'log', 'bag', 'overlay'].some(id => $(id).classList.contains('show'));
+// Keyboard: Space / Enter works the main battle button
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if ($('help').classList.contains('show')) closeHelp();
+    else if ($('log').classList.contains('show')) closeLog();
+    else if ($('bag').classList.contains('show')) closeBag();
+    else if ($('picker').classList.contains('show')) $('picker').classList.remove('show');
+    return;
+  }
+  if (e.key !== ' ' && e.key !== 'Enter') return;
+  if (anyModalOpen()) return;
+  if (state !== STATE.READY && state !== STATE.CHEWING) return;
+  if (document.activeElement && document.activeElement.tagName === 'BUTTON') return;
+  e.preventDefault();
+  if (state === STATE.READY) handleMainBtn(); else handleSwallow();
+});
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+
+// Ambient shooting stars on the title + home scenes
+setInterval(() => {
+  const host = $('home').classList.contains('show') ? $('home') : $('titleScreen').classList.contains('show') ? $('titleScreen') : null;
+  if (!host || Math.random() > 0.5) return;
+  const el = document.createElement('div');
+  el.className = 'shooting-star';
+  el.style.top = (4 + Math.random() * 16) + '%';
+  el.style.left = (30 + Math.random() * 60) + '%';
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}, 9000);
+
+// PWA service worker (no-op when opened as a local file)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ===== INIT =====
+profile = loadProfile();
+if (hasSave() && resumeMeal()) {
+  // dropped straight back into the meal in progress
+} else if (hasSave()) {
+  showHome();
+  if (!profile.seenHelp2) openHelp();
+} else {
+  $('titleScreen').classList.add('show');
+}
+</script>
+</body>
+</html>
