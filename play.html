@@ -1366,29 +1366,29 @@ const SPRITES = {
 const g = (b, d, l, h) => ({ b, d, l, h });
 const FOOD_TYPES = [
   { id: 'burger',  label: 'Burger / sandwich', noun: 'burger',    sprite: 'burger', bites: 14, power: 'Hearty',     attack: 'Hearty Slam',
-    foe: { name: 'Wolfdown',         sub: 'Swallows sandwiches whole',  pal: g('#8a6a4a', '#5a4430', '#c8a878', '#e8d8a0'), intro: 'Wolfdown sniffs your burger and licks its chops!' } },
+    foe: { name: 'Bun Bolter', sub: 'Swallows sandwiches whole',  pal: g('#8a6a4a', '#5a4430', '#c8a878', '#e8d8a0'), intro: 'The Bun Bolter sniffs your burger and gets ready to bolt it!' } },
   { id: 'pizza',   label: 'Pizza',             noun: 'pizza',     sprite: 'pizza',  bites: 18, power: 'Ember',      attack: 'Oven Blast',
-    foe: { name: 'Slice Snatcher',   sub: 'Folds every slice in half',  pal: g('#c8502e', '#8a3020', '#f0a070', '#f2c84b'), intro: 'The Slice Snatcher wants that pizza gone in four bites!' } },
+    foe: { name: 'Crust Crusher', sub: 'Folds every slice in half',  pal: g('#c8502e', '#8a3020', '#f0a070', '#f2c84b'), intro: 'The Crust Crusher wants that pizza gone in four bites!' } },
   { id: 'noodles', label: 'Pasta / noodles',   noun: 'noodles',   sprite: 'bowl',   bites: 28, power: 'Noodle',     attack: 'Noodle Whip',
-    foe: { name: 'Slurp Serpent',    sub: 'Hoovers noodles unchewed',   pal: g('#c8a83a', '#8a7020', '#f0dc90', '#fbf8f0'), intro: 'The Slurp Serpent hisses: "Just slurp it all!"' } },
+    foe: { name: 'Noodle Noose', sub: 'Hoovers noodles unchewed',   pal: g('#c8a83a', '#8a7020', '#f0dc90', '#fbf8f0'), intro: 'The Noodle Noose lassos your noodles: "Just slurp it all!"' } },
   { id: 'rice',    label: 'Rice / curry',      noun: 'rice bowl', sprite: 'bowl',   bites: 30, power: 'Spice',      attack: 'Curry Flare', pal: { f: '#c8862e', h: '#f4f1ea', u: '#4a74a8', v: '#34547c' },
-    foe: { name: 'Shovel Imp',       sub: 'Eats with a spade',          pal: g('#7a5aa8', '#4e3a70', '#b8a0d8', '#e8d8a0'), intro: 'The Shovel Imp starts shoveling! Rice everywhere!' } },
+    foe: { name: 'Grain Grabber', sub: 'Grabs rice by the fistful',          pal: g('#7a5aa8', '#4e3a70', '#b8a0d8', '#e8d8a0'), intro: 'The Grain Grabber grabs a fistful! Rice everywhere!' } },
   { id: 'salad',   label: 'Salad',             noun: 'salad',     sprite: 'bowl',   bites: 25, power: 'Leaf',       attack: 'Vine Lash', pal: { f: '#5fa84a', h: '#c8402e', u: '#d8cfb8', v: '#a89e86' },
-    foe: { name: 'Forkstorm Sprite', sub: 'Stabs, stabs, stabs',        pal: g('#4a8aa8', '#2e5a70', '#a0d0e0', '#fbf8f0'), intro: 'The Forkstorm Sprite whirls in, forks first!' } },
+    foe: { name: 'Leaf Lunger', sub: 'Lunges, stabs, swallows',        pal: g('#4a8aa8', '#2e5a70', '#a0d0e0', '#fbf8f0'), intro: 'The Leaf Lunger lunges in, fork first!' } },
   { id: 'soup',    label: 'Soup / stew',       noun: 'soup',      sprite: 'bowl',   bites: 28, power: 'Steam',      attack: 'Steam Wave', pal: { f: '#d8702e', h: '#f09a50', u: '#8a5a3a', v: '#63402a' },
     foe: { name: 'Scald Gobblin',    sub: 'Never waits for it to cool', pal: g('#b84444', '#7a2828', '#e88a7a', '#f2c230'), intro: 'The Scald Gobblin gulps boiling soup. It dares you to do the same!' } },
   { id: 'plate',   label: 'Meat & veg',        noun: 'plate',     sprite: 'plate',  bites: 30, power: 'Iron',       attack: 'Iron Strike',
-    foe: { name: 'Plate Bandit',     sub: 'Clears plates in minutes',   pal: g('#5a5a6a', '#3a3a48', '#9a9aaa', '#d8b890'), intro: 'The Plate Bandit eyes your dinner. Hurry, it whispers.' } },
+    foe: { name: 'Roast Raider', sub: 'Clears plates in minutes',   pal: g('#5a5a6a', '#3a3a48', '#9a9aaa', '#d8b890'), intro: 'The Roast Raider eyes your dinner. Hurry, it whispers.' } },
   { id: 'eggs',    label: 'Eggs / breakfast',  noun: 'breakfast', sprite: 'egg',    bites: 16, power: 'Sunrise',    attack: 'Sunny Flash',
     foe: { name: 'Rush Hour Gremlin', sub: 'Eats breakfast on the bus', pal: g('#d8903a', '#9a6020', '#f4c880', '#fbf8f0'), intro: 'The Rush Hour Gremlin taps its watch. You\'re late, it says!' } },
   { id: 'fruit',   label: 'Fruit',             noun: 'fruit',     sprite: 'apple',  bites: 10,  power: 'Zest',       attack: 'Citrus Burst',
-    foe: { name: 'Gulp Wasp',        sub: 'Bite, bite, gone',           pal: g('#e0b030', '#2a2420', '#f4dc80', '#fbf8f0'), intro: 'The Gulp Wasp buzzes around your fruit!' } },
+    foe: { name: 'Core Chomper', sub: 'Eats the core and all',           pal: g('#e0b030', '#2a2420', '#f4dc80', '#fbf8f0'), intro: 'The Core Chomper snaps at your fruit, core and all!' } },
   { id: 'snack',   label: 'Snack',             noun: 'snack',     sprite: 'cookie', bites: 8,  power: 'Crunch',     attack: 'Crunch Spark',
-    foe: { name: 'Mindless Muncher', sub: 'Eats without noticing',      pal: g('#8a8a7a', '#5a5a4e', '#c8c8b8', '#e8d8a0'), intro: 'The Mindless Muncher reaches for the bag without looking!' } },
+    foe: { name: 'Crumb Gobblin', sub: 'Eats without noticing',      pal: g('#8a8a7a', '#5a5a4e', '#c8c8b8', '#e8d8a0'), intro: 'The Crumb Gobblin reaches for the bag without looking!' } },
   { id: 'dessert', label: 'Dessert',           noun: 'dessert',   sprite: 'cake',   bites: 12,  power: 'Sugar Star', attack: 'Sprinkle Nova',
     foe: { name: 'Sugar Rush',       sub: 'Vibrating with impatience',  pal: g('#d85a9a', '#9a3a6a', '#f4b0d0', '#fbf8f0'), intro: 'Sugar Rush zips in, vibrating! Eat it all NOW, it squeaks!' } },
   { id: 'other',   label: 'Something else',    noun: 'meal',      sprite: 'cloche', bites: 22, power: 'Mystery',    attack: 'Mystery Spell',
-    foe: { name: 'The Hurry',        sub: 'Oldest of the Gobblins',     pal: g('#3a3a5a', '#22223a', '#6a6a8a', '#c8402e'), intro: 'The Hurry arrives. It does not like waiting.' } },
+    foe: { name: 'The Clockwatcher', sub: 'Oldest of the Gobblins',     pal: g('#3a3a5a', '#22223a', '#6a6a8a', '#c8402e'), intro: 'The Clockwatcher arrives, counting every second you chew.' } },
 ];
 // Bites = typical portion ÷ typical forkful: pasta ~350g at ~12g, rice ~400g
 // at ~13g, meat & veg ~400g, salad ~250g at ~10g, soup ~350ml at ~12ml,
@@ -1753,7 +1753,7 @@ function renderPicker() {
   const ft = FOOD_BY_ID[pickFood];
   $('fightBtn').disabled = !ft;
   $('pickEst').innerHTML = ft
-    ? `Your ${ft.noun} ${/s$/.test(ft.noun) ? 'give' : 'gives'} you <b>${ft.power} power</b>.<br>It will attract ${/^[AEIOU]/.test(foeRank()) ? 'an' : 'a'} ${foeRank().toLowerCase()} <b>${ft.foe.name}</b>.<br>About ${foeBites(ft, pickSize)} bites, around ${mealMinsEst(foeBites(ft, pickSize))} minutes.`
+    ? `Your ${ft.noun} ${/s$/.test(ft.noun) ? 'give' : 'gives'} you <b>${ft.power} power</b>.<br>It will attract ${/^[AEIOU]/.test(foeRank()) ? 'an' : 'a'} ${foeRank().toLowerCase()} <b>${ft.foe.name.replace(/^The /, '')}</b>.<br>About ${foeBites(ft, pickSize)} bites, around ${mealMinsEst(foeBites(ft, pickSize))} minutes.`
     : 'Pick what\'s on your plate.';
 }
 function startFight() {
