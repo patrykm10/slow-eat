@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="./icons/icon-192.png">
 <title>Eat Slow — Quest</title>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./fonts/fonts.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -837,7 +837,8 @@
 
   /* Title screen */
   .title-tagline { font-size: 8px; }
-  .home-feedback { display: block; text-align: center; margin-top: 18px; font-size: 8px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+  .home-links { display: flex; justify-content: center; gap: 22px; margin-top: 18px; }
+  .home-links a { font-size: 8px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
   .title-link {
     display: block; text-align: center; margin-top: 2px;
     font-family: var(--read); font-size: 19px; color: var(--charge); text-decoration: none;
@@ -1082,7 +1083,7 @@
       <button id="homeLogBtn">📜 MY MEALS</button>
       <button id="homeBagBtn">🎒 BAG</button>
     </div>
-    <a class="home-feedback" href="./feedback.html">Share feedback</a>
+    <div class="home-links"><a href="./feedback.html">Share feedback</a><a href="./privacy.html">Privacy</a></div>
   </div>
 </div>
 

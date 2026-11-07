@@ -1,4 +1,4 @@
-const CACHE = 'eat-slow-quest-v23';
+const CACHE = 'eat-slow-quest-v24';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,17 @@ const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './privacy.html',
+  './fonts/fonts.css',
+  './fonts/ibm-plex-sans-400-latin-ext.woff2',
+  './fonts/ibm-plex-sans-400-latin.woff2',
+  './fonts/ibm-plex-sans-600-latin-ext.woff2',
+  './fonts/ibm-plex-sans-600-latin.woff2',
+  './fonts/press-start-2p-400-latin-ext.woff2',
+  './fonts/press-start-2p-400-latin.woff2',
+  './fonts/vt323-400-latin-ext.woff2',
+  './fonts/vt323-400-latin.woff2'
 ];
 
 self.addEventListener('install', (e) => {
