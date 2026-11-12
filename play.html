@@ -115,7 +115,12 @@
     gap: 10px;
   }
   .header { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; }
-  .title { font-size: 8px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 8px;
+    border: 1px solid var(--border); border-radius: 15px; background: transparent; color: var(--text);
+    font-family: 'Press Start 2P', monospace; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  }
+  .back-btn:hover { border-color: var(--muted); }
   .header-right { display: flex; gap: 12px; align-items: center; }
   .level-tag { font-size: 8px; color: var(--xp); letter-spacing: 1px; }
   .timer { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
@@ -377,6 +382,8 @@
   .btn-secondary.primary-action { border-color: var(--charge); color: var(--charge); }
   .btn-secondary:hover:not(:disabled) { border-color: var(--muted); color: var(--text); }
   .btn-secondary:disabled { opacity: 0.25; cursor: not-allowed; }
+  .btn-secondary.primary-action.go { background: var(--charge); color: var(--bg); padding: 18px 12px; font-size: 10px; }
+  .btn-secondary.primary-action.go:hover { color: var(--bg); border-color: var(--charge); }
 
   /* ===== SUMMARY ===== */
   .overlay {
@@ -924,7 +931,7 @@
 <!-- BATTLE -->
 <div class="app">
   <div class="header">
-    <div class="title">Eat Slow Quest</div>
+    <button class="back-btn" id="backBtn" aria-label="Back to home"><svg viewBox="0 0 9 9" width="11" height="11" aria-hidden="true" shape-rendering="crispEdges" fill="currentColor"><rect x="5" y="1" width="1" height="1"/><rect x="4" y="2" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="3" y="5" width="1" height="1"/><rect x="4" y="6" width="1" height="1"/><rect x="5" y="7" width="1" height="1"/></svg>Home</button>
     <div class="header-right">
       <div class="level-tag" id="levelTag">LV 1</div>
       <div class="timer" id="mealTimer">00:00</div>
@@ -1395,10 +1402,13 @@ const FOOD_TYPES = [
 // burger ~250g at ~18g, 2–3 slices of pizza, an apple ~150g at ~15g.
 const FOOD_BY_ID = Object.fromEntries(FOOD_TYPES.map(f => [f.id, f]));
 const SIZES = [
-  { id: 'small',   label: 'Small',   hint: 'light portion', mult: 0.6 },
-  { id: 'regular', label: 'Regular', hint: 'normal plate',  mult: 1 },
-  { id: 'big',     label: 'Big',     hint: 'big plate',     mult: 1.4 },
+  { id: 'small',   label: 'Small',   hint: 'light portion', mult: 0.6, hp: 1.2 },
+  { id: 'regular', label: 'Regular', hint: 'normal plate',  mult: 1,   hp: 1 },
+  { id: 'big',     label: 'Big',     hint: 'big plate',     mult: 1.4, hp: 1 },
 ];
+// hp: a small plate is only a handful of bites, so a couple of good chews used
+// to finish the Gobblin off almost at once. It's the same monster, so it keeps
+// a bit more of its HP: you need well-chewed bites to win before the plate ends.
 const SIZE_BY_ID = Object.fromEntries(SIZES.map(s => [s.id, s]));
 
 // ===== SLOW-EATING NOTES (shown mid-fight while you chew) =====
@@ -1576,10 +1586,10 @@ function bossDamage(chewMs) {
 function foeBites(ft, sizeId) { return Math.max(3, Math.round(ft.bites * SIZE_BY_ID[sizeId].mult)); }
 // HP = the damage you'd deal chewing every bite for HP_TARGET_SEC, counting the
 // combo building up and the average crit. Scales the same for a snack or a feast.
-function foeMaxHp(nb) {
+function foeMaxHp(nb, sizeId = 'regular') {
   let hp = 0;
   for (let i = 1; i <= nb; i++) hp += baseHitAt(HP_TARGET_SEC) * (1 + Math.min(i, COMBO_MAX) * COMBO_DMG_BONUS) * (1 + CRIT_CHANCE * (CRIT_MULT - 1));
-  return Math.round(hp * HP_SLACK * foeStrength());
+  return Math.round(hp * HP_SLACK * SIZE_BY_ID[sizeId].hp * foeStrength());
 }
 // Gobblins start weak and toughen up as you play. Strength scales their HP and
 // how hard they hit back. 0.6 for your first meals, 1.0 by meal 15 (tuned so
@@ -2055,10 +2065,12 @@ function render() {
   const chewSection = $('chewSection');
 
   if (state === STATE.READY) {
-    $('mainBtn').style.display = '';
+    // A beaten Gobblin can't be hit again: the bite button goes, Done eating takes over.
+    $('mainBtn').style.display = foeDown ? 'none' : '';
+    $('finishBtn').classList.toggle('go', foeDown);
     swBtn.style.display = 'none'; chewSection.classList.remove('active');
     if (foeDown) {
-      prompt.textContent = 'Foe beaten. Keep eating slowly, or tap Done eating.';
+      prompt.textContent = 'Foe beaten. Finish your plate slowly, then tap Done eating.';
     } else if (bites.length === 0) {
       prompt.textContent = 'Take a real bite of food, then tap the button';
     } else if (bites.length >= foe.bites) {
@@ -2205,7 +2217,7 @@ $('soundBtn').addEventListener('click', () => {
 // ===== MEAL FLOW =====
 function beginMeal(ft, sizeId) {
   const nb = foeBites(ft, sizeId);
-  foe = { ft, size: sizeId, bites: nb, name: ft.foe.name, maxHp: foeMaxHp(nb) };
+  foe = { ft, size: sizeId, bites: nb, name: ft.foe.name, maxHp: foeMaxHp(nb, sizeId) };
   const now = Date.now();
   state = STATE.READY;
   mealStart = now;
@@ -2254,7 +2266,7 @@ function beginMeal(ft, sizeId) {
 }
 
 function handleMainBtn() {
-  if (animating || state !== STATE.READY) return;
+  if (animating || state !== STATE.READY || foeDown) return;
   haptic(8);
   unlockAudio();
   cuedCombo = false;
@@ -2532,7 +2544,7 @@ const HELP_PAGES = [
            <p>Chew. When you actually swallow, tap <span class="k gold">I swallowed</span>. Your hero attacks.</p>` },
   { title: 'Longer chew, bigger hit',
     body: `<p><b>12s+</b> builds a combo. <b>25s+</b> is a perfect strike. Rushed bites get hit back hard.</p>
-           <p>Its HP is sized to your plate. Gobblins start as rookies: chew each bite <b>12s+</b> and you'll win. They get tougher the more meals you play, until you need about <b>20 seconds</b> a bite. Rush, and it gets away.</p>
+           <p>Its HP is sized to your plate, with a little extra on small plates. Gobblins start as rookies: chew each bite <b>12s+</b> and you'll win. They get tougher the more meals you play, until you need about <b>20 seconds</b> a bite. Rush, and it gets away.</p>
            <p>Full before your plate is empty? Stop and tap <b>Done eating</b>. That counts as a win too.</p>` },
   { title: 'Level up, find gear',
     body: `<p>Tap <b>Done eating</b> when you're finished. You earn XP, and victories can drop gear for your bag.</p>
@@ -2590,10 +2602,12 @@ function startOver() {
 $('mainBtn').addEventListener('click', handleMainBtn);
 $('swallowBtn').addEventListener('click', handleSwallow);
 $('finishBtn').addEventListener('click', finishMeal);
-$('resetBtn').addEventListener('click', () => {
+function confirmLeave() {
   if (bites.length && !confirm('Leave without saving this meal? Tap "Done eating" instead to keep your XP.')) return;
   leaveMeal();
-});
+}
+$('resetBtn').addEventListener('click', confirmLeave);
+$('backBtn').addEventListener('click', confirmLeave);
 $('eatBtn').addEventListener('click', openPicker);
 $('pickBack').addEventListener('click', () => $('picker').classList.remove('show'));
 $('fightBtn').addEventListener('click', startFight);
